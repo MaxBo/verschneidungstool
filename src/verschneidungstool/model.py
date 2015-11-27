@@ -91,6 +91,13 @@ class DBConnection(object):
         return self.fetch(sql)
 
     def drop_area(self, id, table, schema):
+
+        last = self.get_last_calculated()
+        if schema == last[0].schema and table == last[0].table_name:
+            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'.format(schema=schema, table=table) +
+                    'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n' +
+                    'Bitte führen Sie zunächst eine Verschneidung mit einer\n' +
+                    'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
         # remove row from available schemata
         sql_remove = """
         DELETE FROM meta.areas_available
@@ -103,9 +110,9 @@ class DBConnection(object):
         try:
             self.execute(sql_remove.format(id=id))
             self.execute(sql_drop.format(schema=schema, table=table))
-            return True
+            return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
         except:
-            return False
+            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
 
     def get_projections_available(self):
         sql = """

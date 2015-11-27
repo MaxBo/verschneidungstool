@@ -149,14 +149,14 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         id, c = selected_data[0].toInt()
         schema = selected_data[1].toString()
         table_name = selected_data[2].toString()
-        success = self.db_conn.drop_area(id, table_name, schema)
+        success, msg= self.db_conn.drop_area(id, table_name, schema)
         if success:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Erfolg",
-                                       _fromUtf8("Löschen der Aggregationsstufe {} war erfolgreich.".format(name)))
+                                       _fromUtf8(msg))
             msgBox.exec_()
         else:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8("Beim Löschen der Aggregationsstufe {} ist ein Fehler aufgetreten!".format(name)))
+                                       _fromUtf8(msg))
             msgBox.exec_()
 
         self.render_areas()
