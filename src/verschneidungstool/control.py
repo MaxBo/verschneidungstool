@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from gui_hannover.main_view import Ui_MainWindow
-from gui_hannover.model import DBConnection
-from gui_hannover.dialogs import SettingsDialog, UploadDialog, ExecShapeDownload, IntersectionDialog
+from verschneidungstool.main_view import Ui_MainWindow
+from verschneidungstool.model import DBConnection
+from verschneidungstool.dialogs import SettingsDialog, UploadDialog, ExecShapeDownload, IntersectionDialog
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
-from gui_hannover.config import Config
+from verschneidungstool.config import Config
 
 config = Config()
 

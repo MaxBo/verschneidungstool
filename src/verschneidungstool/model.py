@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import psycopg2
 from extractiontools.connection import Connection
-from gui_hannover.config import Config
+from verschneidungstool.config import Config
 from PyQt4 import QtCore
 import tempfile, os, shutil, re
 import unicodecsv as csv
@@ -340,7 +340,7 @@ class DBConnection(object):
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM meta.areas_available AS a
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
-                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell (id, geom) AS
+                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell (id, geom, zone_name) AS
                 SELECT
                 t."{pkey}"::integer AS id,
                 t.geom::geometry(GEOMETRY) AS geom,

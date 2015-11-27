@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from gui_hannover.settings_view import Ui_Settings
-from gui_hannover.upload_view import Ui_Upload
-from gui_hannover.progress_view import Ui_ProgressDialog
+from verschneidungstool.settings_view import Ui_Settings
+from verschneidungstool.upload_view import Ui_Upload
+from verschneidungstool.progress_view import Ui_ProgressDialog
 from PyQt4 import QtCore, QtGui
-from gui_hannover.config import Config, DEFAULT_SRID
-from gui_hannover.model import parse_projection_file, parse_projection_data
+from verschneidungstool.config import Config, DEFAULT_SRID
+from verschneidungstool.model import parse_projection_file, parse_projection_data
 import copy, os, re
 
 config = Config()

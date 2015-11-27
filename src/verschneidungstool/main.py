@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from argparse import ArgumentParser
-from gui_hannover.control import MainWindow
+from verschneidungstool.control import MainWindow
 import sys
 from PyQt4 import QtGui
-from gui_hannover.config import Config
+from verschneidungstool.config import Config
 
 config = Config()
 config.read()
