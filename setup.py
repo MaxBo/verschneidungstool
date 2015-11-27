@@ -30,7 +30,8 @@ setup(
         'setuptools',
         'psycopg2',
         'lxml',
-        'xlwt'
+        'xlwt',
+        'unicodecsv',
     ],
 
     # PyQT 4 needed, no disutils available for the package.

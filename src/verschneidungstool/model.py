@@ -3,7 +3,8 @@ import psycopg2
 from extractiontools.connection import Connection
 from gui_hannover.config import Config
 from PyQt4 import QtCore
-import tempfile, os, shutil, re, csv
+import tempfile, os, shutil, re
+import unicodecsv as csv
 import xlwt
 
 config = Config()
@@ -311,13 +312,15 @@ class DBConnection(object):
             def run(self):
 
                 sql_pkey = """
-                SELECT pkey
+                SELECT pkey, zone_name
                 FROM meta.areas_available
                 WHERE schema='{schema}'
                 AND table_name='{table}'
                 """
 
-                pkey = fetch(sql_pkey.format(schema=schema, table=table))[0].pkey
+                row = fetch(sql_pkey.format(schema=schema, table=table))[0]
+                pkey = row.pkey
+                zone_name = row.zone_name
 
                 progress_signal = 'progress(QString, QVariant)'
                 signal = QtCore.SIGNAL(progress_signal)
@@ -328,6 +331,10 @@ class DBConnection(object):
 
                 self.emit(signal, 'Starte Verschneidung...', 0)
 
+                if zone_name is None or zone_name == '':
+                    name_str = "''"
+                else:
+                    name_str = 't."{zone_name}"'.format(zone_name=zone_name)
                 sql_prep = """
                 INSERT INTO meta.scenario (area_id, start_time, end_time, started, finished)
                 SELECT a.id, clock_timestamp(), NULL,  True, False
@@ -335,10 +342,12 @@ class DBConnection(object):
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
                 CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell (id, geom) AS
                 SELECT
-                t.{pkey} AS id,
-                t.geom::geometry(GEOMETRY) AS geom
+                t."{pkey}"::integer AS id,
+                t.geom::geometry(GEOMETRY) AS geom,
+                {name_str}::text AS zone_name
                 FROM {schema}.{table} AS t;"""
-                execute(sql_prep.format(pkey=pkey, schema=schema, table=table))
+                execute(sql_prep.format(pkey=pkey, schema=schema, table=table,
+                                        name_str=name_str))
 
                 self.emit(signal,
                           'Verschneide Verkehrszellen mit Prognosebezirken...',
@@ -424,7 +433,6 @@ AND l.id = sc.id;
 
         thread = Intersection()
         return thread
-        return True, ''
 
     def set_current_year(self, year):
         sql = """
@@ -442,7 +450,7 @@ AND l.id = sc.id;
 
     def results_to_csv(self, columns, filename):
         sql = '''
-        COPY (SELECT vz_id {columns}
+        COPY (SELECT vz_id, zone_name {columns}
         FROM strukturdaten.results) TO STDOUT WITH CSV HEADER
         '''
         if columns and len(columns) > 0:
@@ -460,7 +468,7 @@ AND l.id = sc.id;
         self.results_to_csv(columns, tmp_filename)
 
         with open(tmp_filename, 'rb') as f:
-            csvreader = csv.reader ((f), delimiter=",")
+            csvreader = csv.reader((f), delimiter=",")
             wbk = xlwt.Workbook()
             sheet = wbk.add_sheet("Sheet 1")
             for r, row in enumerate(csvreader):
@@ -486,7 +494,7 @@ AND l.id = sc.id;
         else:
             columns = ''
 
-        sql = 'SELECT vz_id, geom {columns} FROM strukturdaten.results'
+        sql = 'SELECT vz_id, zone_name, geom {columns} FROM strukturdaten.results'
 
         pgsql2shp_cmd = '"{executable}" -f "{filename}" -h {host} -p {port} -u {user} -P {password} {database} "{sql}"'.format(
             executable=pgsql2shp_path,
