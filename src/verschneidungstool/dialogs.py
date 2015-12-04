@@ -462,7 +462,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     """
     Dialog showing progress in textfield and bar after starting a certain task with run()
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, auto_close=False):
         super(ProgressDialog, self).__init__(parent=parent)
         self.parent = parent
         self.setupUi(self)
@@ -471,6 +471,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
         self.progress_bar.setValue(0)
         self.cancelButton.clicked.connect(self.close)
         self.startButton.clicked.connect(self.run)
+        self.auto_close = auto_close
 
     def running(self):
         self.startButton.setEnabled(False)
@@ -481,6 +482,8 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
         self.startButton.setEnabled(True)
         self.cancelButton.setText(_fromUtf8('Schließen'))
         self.cancelButton.clicked.connect(self.close)
+        if self.auto_close:
+            self.close()
 
     def show_status(self, text, progress=None):
         self.log_edit.insertHtml(str(text) + '<br>')
@@ -498,8 +501,8 @@ class IntersectionDialog(ProgressDialog):
     """
     ProgressDialog extented by an internal thread for intersecting
     """
-    def __init__(self, db_connection, schema, table, parent=None):
-        super(IntersectionDialog, self).__init__(parent=parent)
+    def __init__(self, db_connection, schema, table, parent=None, auto_close=False):
+        super(IntersectionDialog, self).__init__(parent=parent, auto_close=auto_close)
         self.table = table
         self.schema = schema
         self.db_connection = db_connection
@@ -534,7 +537,7 @@ class ExecDialog(ProgressDialog):
     ProgressDialog extented by an executable external process
     """
     def __init__(self, parent=None, auto_close=False):
-        super(ExecDialog, self).__init__(parent=parent)
+        super(ExecDialog, self).__init__(parent=parent, auto_close=auto_close)
 
         # QProcess object for external app
         self.process = QtCore.QProcess(self)
@@ -560,8 +563,6 @@ class ExecDialog(ProgressDialog):
         else:
             self.progress_bar.setStyleSheet(ABORTED_STYLE)
         self.stopped()
-        if self.auto_close:
-            self.close()
 
     def kill(self):
         self.progress_bar.setStyleSheet(ABORTED_STYLE)

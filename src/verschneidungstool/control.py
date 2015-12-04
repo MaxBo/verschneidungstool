@@ -45,7 +45,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     def exec_arguments(self, arguments):
         self.arguments = arguments
 
-        if not arguments.upload:
+        if not arguments.upload and not arguments.intersection:
             return
 
         #connect automatically
@@ -63,6 +63,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                 'c_name': arguments.c_name
             }
             self.upload_shape(auto_args=auto_args)
+
+        if arguments.intersection:
+            auto_args = {
+                'scheme': arguments.scheme,
+                'table_name': arguments.table_name,
+            }
+            self.intersect(auto_args)
 
         self.close()
         exit(1)
@@ -257,7 +264,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     def edit_settings(self):
         diag = SettingsDialog(self)  #, on_change=self.dbreset)
 
-    def intersect(self):
+    def intersect(self, auto_args):
 
         last_calc = self.db_conn.get_last_calculated()
 
@@ -268,10 +275,15 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
             return
 
-        item = self.layer_combo.itemData(self.layer_combo.currentIndex()).toList()
-        schema = str(item[1].toString())
-        table = str(item[2].toString())
-        intersectDiag = IntersectionDialog(self.db_conn, schema, table)
+        if not auto_args:
+            item = self.layer_combo.itemData(self.layer_combo.currentIndex()).toList()
+            schema = str(item[1].toString())
+            table = str(item[2].toString())
+        else:
+            schema = auto_args['scheme']
+            table = auto_args['table_name']
+
+        intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=True)
         intersectDiag.exec_()
 
 

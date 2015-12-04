@@ -17,19 +17,23 @@ def startmain():
                         dest="config")
 
     parser.add_argument("-upload", action="store_true",
-                        help="Shapefile hochladen (optional)",
+                        help="Shapefile hochladen",
                         dest="upload")
+
+    parser.add_argument("-verschneiden", action="store_true",
+                        help="Verschneidung durchführen",
+                        dest="intersection")
 
     parser.add_argument("-pfad", action="store",
                         help="Pfad zum Shapefile (Pflicht bei Shapefile-Upload)",
                         dest="shape_path")
 
     parser.add_argument("-schema", action="store",
-                        help="Zielschema in der Datenbank (Pflicht bei Shapefile-Upload)",
+                        help="Datenbankschema (Pflicht bei Shapefile-Upload und Verschneidung)",
                         dest="scheme")
 
     parser.add_argument("-name", action="store",
-                        help="Name der zu erzeugenden Tabelle in der Datenbank (optional bei Shapefile-Upload)",
+                        help="Name der Tabelle mit den Shapes (optional bei Shapefile-Upload, Pflicht bei Verschneidung)",
                         dest="table_name")
 
     parser.add_argument("-srid", action="store",
@@ -48,26 +52,18 @@ def startmain():
                         #help="shapefile hochladen",
                         #dest="shape_file", default=None)
 
-    #parser.add_argument("-shape", action="store",
-                        #help="shapefile hochladen",
-                        #dest="shape_file", default=None)
-
     #parser.add_argument("-run", action="store",
                         #help="angegebenes Szenario ausführen",
                         #dest="scenario_name", default=None)
 
     arguments = parser.parse_args()
 
-    upload = arguments.upload
-    shape_path = arguments.shape_path
-    scheme = arguments.scheme
-
-    if upload and (not shape_path or not scheme):
-        print('Um ein Shapefile hochzuladen, müssen Pfad zum Shapefile und Zielschema angegeben werden.')
+    if arguments.upload and (not arguments.shape_path or not arguments.scheme):
+        print('Um ein Shapefile hochzuladen, müssen Pfad zum Shapefile und Zielschema angegeben sein.')
         exit(1)
 
-    if upload and (not shape_path or not scheme):
-        print('Um ein Shapefile hochzuladen, müssen Pfad')
+    if arguments.intersection and (not arguments.table_name or not arguments.scheme):
+        print('Um eine Verschneidung durchzuführen hochzuladen, müssen Schema und Tabellenname mit den Shapes angegeben sein')
         exit(1)
 
     app = QtGui.QApplication(sys.argv)
