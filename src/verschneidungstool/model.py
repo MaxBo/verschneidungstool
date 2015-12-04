@@ -328,15 +328,22 @@ class DBConnection(object):
                 sql_queries = """
                 SELECT * FROM meta.queries ORDER BY id;
                 """
+                progress_signal = 'progress(QString, QVariant)'
+                signal = QtCore.SIGNAL(progress_signal)
 
-                row = fetch(sql_pkey.format(schema=schema, table=table))[0]
+                try:
+                    row = fetch(sql_pkey.format(schema=schema, table=table))[0]
+                except IndexError:
+                    msg = 'Tabelle {schema}.{table}.\nnicht in der Datenbank vorhanden.'.format(schema=schema, table=table)
+                    self.emit( signal, msg, 0)
+                    #return
+                    raise AttributeError(msg)
+
                 pkey = row.pkey
                 zone_name = row.zone_name
 
                 queries = fetch(sql_queries)
 
-                progress_signal = 'progress(QString, QVariant)'
-                signal = QtCore.SIGNAL(progress_signal)
                 if not pkey:
                     msg = 'Fehlerhafter Eintrag für {schema}.{table}.\nEs ist kein primary key angegeben.'.format(schema=schema, table=table)
                     self.emit( signal, msg, 0)
@@ -370,69 +377,6 @@ class DBConnection(object):
                     execute(query.command)
                     progress += (query.weight / weight_sum) * 100
 
-
-
-                #sql_intersect1 = """
-                #-- Verschneide neue Verkehrszellen  mit Prognosebezirken
-                #REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
-                #"""
-                #execute(sql_intersect1)
-
-                #self.emit(signal,
-                          #'Verschneide Verkehrszellen mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes...',
-                        #30)
-
-                #sql_intersect2 = """
-                #-- Verschneide mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes
-                #REFRESH MATERIALIZED VIEW verkehrszellen.matview_vz_aktuell_gebietstypen;
-                #"""
-                #execute(sql_intersect2)
-
-                #self.emit(signal,
-                         #'Verschneide Verkehrszellen mit Baubloecken und Gebaeuden...', 45)
-
-                #sql_intersect3 = """
-#-- Verschneide Baubloecke und Gebaeude mit neuen Verkehrszellen
-#SELECT gc.intersect_vz('raumeinheiten.skh5_baubloecke', 'baubloecke');
-#SELECT gc.intersect_centroid_vz('einwohner.view_b1_m_all_buildings', 'building_id');
-                #"""
-                #execute(sql_intersect3)
-
-                #self.emit(signal,
-                          #'Berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen...', 50)
-
-                #sql_intersect4 = """
-#-- berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen fuer das Analysejahr
-#REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
-                #"""
-                #execute(sql_intersect4)
-
-
-                ##"""
-                ##-- setze das aktuelle Jahr
-                ##UPDATE meta.current_year
-                ##SET jahr = {year_selected};
-                ##"""
-
-                #self.emit(signal,
-                          #'Verschneide geplante Baugebiete mit neuen Verkehrszellen...', 65)
-
-                #sql_intersect5 = """
-#-- Verschneide geplante Baugebiete mit neuen Verkehrszellen
-#SELECT gc.intersect_vz('planungen.planungen_siedlung_region_2015', 'siedlungsfl_id');
-#SELECT gc.intersect_vz('planungen.planungen_siedlung_lhh_2015', 'gid');
-                #"""
-                #execute(sql_intersect5)
-
-                #self.emit(signal,
-                          #'Aktualisiere materialisierte Views...', 70)
-
-                #sql_intersect6 = """
-#REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
-#REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
-#--REFRESH MATERIALIZED VIEW einwohner.view_l2_m_vz_ew_alkl_prognosejahr;
-                #"""
-                #execute(sql_intersect6)
 
                 self.emit( signal, 'Nachbereitungen laufen...', progress)
 
