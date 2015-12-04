@@ -322,12 +322,18 @@ class DBConnection(object):
                 SELECT pkey, zone_name
                 FROM meta.areas_available
                 WHERE schema='{schema}'
-                AND table_name='{table}'
+                AND table_name='{table}';
+                """
+
+                sql_queries = """
+                SELECT * FROM meta.queries ORDER BY id;
                 """
 
                 row = fetch(sql_pkey.format(schema=schema, table=table))[0]
                 pkey = row.pkey
                 zone_name = row.zone_name
+
+                queries = fetch(sql_queries)
 
                 progress_signal = 'progress(QString, QVariant)'
                 signal = QtCore.SIGNAL(progress_signal)
@@ -356,80 +362,85 @@ class DBConnection(object):
                 execute(sql_prep.format(pkey=pkey, schema=schema, table=table,
                                         name_str=name_str))
 
-                self.emit(signal,
-                          'Verschneide Verkehrszellen mit Prognosebezirken...',
-                        5)
+                weight_sum = sum(q.weight for q in queries)
+                progress = 0
 
-                sql_intersect1 = """
-                -- Verschneide neue Verkehrszellen  mit Prognosebezirken
-                REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
-                """
-                execute(sql_intersect1)
-
-                self.emit(signal,
-                          'Verschneide Verkehrszellen mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes...',
-                        30)
-
-                sql_intersect2 = """
-                -- Verschneide mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes
-                REFRESH MATERIALIZED VIEW verkehrszellen.matview_vz_aktuell_gebietstypen;
-                """
-                execute(sql_intersect2)
-
-                self.emit(signal,
-                         'Verschneide Verkehrszellen mit Baubloecken und Gebaeuden...', 45)
-
-                sql_intersect3 = """
--- Verschneide Baubloecke und Gebaeude mit neuen Verkehrszellen
-SELECT gc.intersect_vz('raumeinheiten.skh5_baubloecke', 'baubloecke');
-SELECT gc.intersect_centroid_vz('einwohner.view_b1_m_all_buildings', 'building_id');
-                """
-                execute(sql_intersect3)
-
-                self.emit(signal,
-                          'Berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen...', 50)
-
-                sql_intersect4 = """
--- berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen fuer das Analysejahr
-REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
-                """
-                execute(sql_intersect4)
+                for query in queries:
+                    self.emit(signal, query.message, progress)
+                    execute(query.command)
+                    progress += (query.weight / weight_sum) * 100
 
 
+
+                #sql_intersect1 = """
+                #-- Verschneide neue Verkehrszellen  mit Prognosebezirken
+                #REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
                 #"""
-                #-- setze das aktuelle Jahr
-                #UPDATE meta.current_year
-                #SET jahr = {year_selected};
+                #execute(sql_intersect1)
+
+                #self.emit(signal,
+                          #'Verschneide Verkehrszellen mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes...',
+                        #30)
+
+                #sql_intersect2 = """
+                #-- Verschneide mit Einzugsbereichen Schiene, Gebietstypen und Gewichtungsfaktor-Shapes
+                #REFRESH MATERIALIZED VIEW verkehrszellen.matview_vz_aktuell_gebietstypen;
                 #"""
+                #execute(sql_intersect2)
 
-                self.emit(signal,
-                          'Verschneide geplante Baugebiete mit neuen Verkehrszellen...', 65)
+                #self.emit(signal,
+                         #'Verschneide Verkehrszellen mit Baubloecken und Gebaeuden...', 45)
 
-                sql_intersect5 = """
--- Verschneide geplante Baugebiete mit neuen Verkehrszellen
-SELECT gc.intersect_vz('planungen.planungen_siedlung_region_2015', 'siedlungsfl_id');
-SELECT gc.intersect_vz('planungen.planungen_siedlung_lhh_2015', 'gid');
-                """
-                execute(sql_intersect5)
+                #sql_intersect3 = """
+#-- Verschneide Baubloecke und Gebaeude mit neuen Verkehrszellen
+#SELECT gc.intersect_vz('raumeinheiten.skh5_baubloecke', 'baubloecke');
+#SELECT gc.intersect_centroid_vz('einwohner.view_b1_m_all_buildings', 'building_id');
+                #"""
+                #execute(sql_intersect3)
 
-                self.emit(signal,
-                          'Aktualisiere materialisierte Views...', 70)
+                #self.emit(signal,
+                          #'Berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen...', 50)
 
-                sql_intersect6 = """
-REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
-REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
---REFRESH MATERIALIZED VIEW einwohner.view_l2_m_vz_ew_alkl_prognosejahr;
-                """
-                execute(sql_intersect6)
+                #sql_intersect4 = """
+#-- berechne Einwohnerzahl nach Altersklassen in den neuen Verkehrszellen fuer das Analysejahr
+#REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
+                #"""
+                #execute(sql_intersect4)
 
-                self.emit( signal,
-                           'Nachbereitungen laufen...', 98)
+
+                ##"""
+                ##-- setze das aktuelle Jahr
+                ##UPDATE meta.current_year
+                ##SET jahr = {year_selected};
+                ##"""
+
+                #self.emit(signal,
+                          #'Verschneide geplante Baugebiete mit neuen Verkehrszellen...', 65)
+
+                #sql_intersect5 = """
+#-- Verschneide geplante Baugebiete mit neuen Verkehrszellen
+#SELECT gc.intersect_vz('planungen.planungen_siedlung_region_2015', 'siedlungsfl_id');
+#SELECT gc.intersect_vz('planungen.planungen_siedlung_lhh_2015', 'gid');
+                #"""
+                #execute(sql_intersect5)
+
+                #self.emit(signal,
+                          #'Aktualisiere materialisierte Views...', 70)
+
+                #sql_intersect6 = """
+#REFRESH MATERIALIZED VIEW verkehrszellen.mview_vz_progbez;
+#REFRESH MATERIALIZED VIEW einwohner.view_l_m_vz_ew_alkl_2015;
+#--REFRESH MATERIALIZED VIEW einwohner.view_l2_m_vz_ew_alkl_prognosejahr;
+                #"""
+                #execute(sql_intersect6)
+
+                self.emit( signal, 'Nachbereitungen laufen...', progress)
 
                 sql_post = """
-UPDATE meta.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
-FROM meta.areas_available AS a, meta.last_area_calculated AS l
-WHERE a.schema='{schema}' AND a.table_name='{table}'
-AND l.id = sc.id;
+                UPDATE meta.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
+                FROM meta.areas_available AS a, meta.last_area_calculated AS l
+                WHERE a.schema='{schema}' AND a.table_name='{table}'
+                AND l.id = sc.id;
                 """
                 execute(sql_post.format(schema=schema, table=table))
 
