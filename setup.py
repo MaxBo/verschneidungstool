@@ -22,9 +22,9 @@ setup(
     packages=find_packages('src'),
     namespace_packages=['verschneidungstool'],
     package_dir={'': 'src'},
+    package_data={'': ['dlls/*', 'docs/*'],},
     include_package_data=True,
     zip_safe=False,
-
 
     install_requires=[
         'setuptools',
