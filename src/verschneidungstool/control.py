@@ -41,6 +41,32 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         self.dbconnect_button.clicked.connect(self.db_reset)
 
+    # check command-line arguments, if something shall be done automatically (without further user input)
+    def exec_arguments(self, arguments):
+        self.arguments = arguments
+
+        if not arguments.upload:
+            return
+
+        #connect automatically
+        if not self.db_reset():
+            self.close()
+            exit(1)
+
+        if arguments.upload:
+            auto_args = {
+                'shape_path': arguments.shape_path,
+                'scheme': arguments.scheme,
+                'table_name': arguments.table_name,
+                'srid': arguments.srid,
+                'c_id': arguments.c_id,
+                'c_name': arguments.c_name
+            }
+            self.upload_shape(auto_args=auto_args)
+
+        self.close()
+        exit(1)
+
     '''
     connect to the database and initiate rendering of it's contents
     '''
@@ -53,7 +79,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         ## disable while loading (just to show user, that loading is in progress)
         #self.main_frame.setEnabled(False)
 
-        db_config = config.settings['db_config']
+        db_config =  config.settings['db_config']
         self.login = Login(host=db_config['host'], port=db_config['port'],
                            user=db_config['username'], password=db_config['password'],
                            db=db_config['db_name'])
@@ -61,17 +87,18 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         # render main attributes
         if not self.refresh_attr(['schemata']):
-            return
+            return False
         if not self.render_areas():
-            return
+            return False
         if not self.render_years():
-            return
+            return False
 
         # you only get here, if no errors occured
         self.main_frame.setEnabled(True)
         self.download_frame.setEnabled(True)
         self.intersect_frame.setEnabled(True)
         self.dbconnect_button.setText('Verbindung erneuern')
+        return True
 
     def render_areas(self):
         self.layer_combo.clear()
@@ -248,7 +275,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         intersectDiag.exec_()
 
 
-    def upload_shape(self):
+    def upload_shape(self, auto_args = None):
         schemata = [r.name for r in self.schemata]
         reserved_names = [self.layer_combo.itemText(i) for i in range(self.layer_combo.count())]
 
@@ -257,9 +284,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.layer_combo.setCurrentIndex(self.layer_combo.count() - 1)
 
         upDiag = UploadDialog(self.db_conn, schemata, parent=self, on_finish=self.render_areas,
-                              reserved_names=reserved_names, on_success=on_success)
-        upDiag.exec_()
-
+                              reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
 
     def download_results(self):
         selected_columns = self.get_selected()

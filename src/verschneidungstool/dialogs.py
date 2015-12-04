@@ -176,7 +176,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
     a new project
     '''
 
-    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None):
+    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
         super(UploadDialog, self).__init__(parent)
         self.parent = parent
         self.on_finish = on_finish
@@ -184,7 +184,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
         self.db_connection = db_connection
         self.reserved_names = reserved_names
         self.setupUi(self)
-        self.shapefile_browse_button.clicked.connect(self.set_shape)
+        self.auto_args = auto_args
 
         projections_available = self.db_connection.get_projections_available()
         # add available projections to combobox
@@ -194,14 +194,61 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
                 # data: srid, description, not in database
                 [p.srid, p.description, False])
 
-        self.schema_combo.addItems(schemata)
-
+        self.shapefile_browse_button.clicked.connect(self.set_shape)
         self.check_projection_button.clicked.connect(self.check_srid)
         self.check_projection_button.setEnabled(False)
         self.upload_button.clicked.connect(self.upload)
-        self.cancel_button.clicked.connect(self.reject)
+        self.cancel_button.clicked.connect(self.close)
         self.OK_button.setDisabled(True)
         self.identifiers_frame.setDisabled(True)
+        self.schema_combo.addItems(schemata)
+
+        self.show()
+
+        if auto_args:
+            self.auto_start()
+
+
+    def auto_start(self):
+        shapefile = self.auto_args['shape_path']
+        self.shapefile_edit.setText(shapefile)
+        self.schema_combo.addItem(self.auto_args['scheme'])
+        srid = self.auto_args['srid']
+        self.analyse_projection_file()
+        name = self.auto_args['table_name']
+        if not name:
+            name = os.path.splitext(os.path.split(shapefile)[1])[0].lower()
+        self.name_edit.setText(name)
+        if(srid):
+            idx = -1
+            # find srid in the available projections
+            for i in range(self.projection_combo.count()):
+                s, c = self.projection_combo.itemData(i).toList()[0].toInt()
+                if s == int(srid):
+                    idx = i
+                    break
+            # select if found
+            if idx >= 0:
+                self.projection_combo.setCurrentIndex(idx)
+            else:
+                self.projection_combo.addItem(srid)
+                self.projection_combo.setCurrentIndex(self.projection_combo.count() - 1)
+        else:
+            self.check_srid()
+
+        self.upload()
+
+        # identifiers
+        if (self.auto_args['c_id']):
+            self.pkey_combo.addItem(self.auto_args['c_id'])
+        else:
+            self.selection_canceled()
+            return self.close()
+        if (self.auto_args['c_name']):
+            self.pkey_combo.addItem(self.auto_args['c_name'])
+
+        self.set_zone()
+        self.close()
 
     def set_shape(self):
         set_file(self, self.shapefile_edit, '*.shp')
@@ -251,14 +298,16 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
         if proj_not_in_db:
             self.db_connection.add_projection(srid, desc)
         self.upload_diag = ExecUpload(self.db_connection, self.schema, self.name, shapefile,
-                                      parent=self, srid=srid, on_finish=self.on_finish, on_success=self.on_success)
+                                      parent=self, srid=srid, on_finish=self.on_finish, on_success=self.on_success, auto_close=True)
         self.upload_diag.exec_()
-        self.selectIdentifiers()
+        if not self.auto_args:
+            self.selectIdentifiers()
 
     '''
     removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
     '''
     def selectIdentifiers(self):
+
         self.upload_frame.setDisabled(True)
 
         key_columns = self.db_connection.get_column_names(self.schema, self.name)
@@ -326,6 +375,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
     check database for a matching srid to the read projection data
     '''
     def check_srid(self):
+        srid = None
         try:
             srid = self.db_connection.get_srid(self.proj_data)[0].prjtxt2epsg
             message = 'Projektion entspricht der srid <b>{}</b> '.format(srid)
@@ -483,11 +533,12 @@ class ExecDialog(ProgressDialog):
     """
     ProgressDialog extented by an executable external process
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, auto_close=False):
         super(ExecDialog, self).__init__(parent=parent)
 
         # QProcess object for external app
         self.process = QtCore.QProcess(self)
+        self.auto_close = auto_close
 
         # Just to prevent accidentally running multiple times
         # Disable the button when process starts, and enable it when it finishes
@@ -509,6 +560,8 @@ class ExecDialog(ProgressDialog):
         else:
             self.progress_bar.setStyleSheet(ABORTED_STYLE)
         self.stopped()
+        if self.auto_close:
+            self.close()
 
     def kill(self):
         self.progress_bar.setStyleSheet(ABORTED_STYLE)
@@ -519,8 +572,8 @@ class ExecDialog(ProgressDialog):
 
 class ExecUpload(ExecDialog):
     def __init__(self, db_connection, schema, name, shapefile,
-                 srid=None, parent=None, on_finish=None, on_success=None):
-        super(ExecUpload, self).__init__(parent=parent)
+                 srid=None, parent=None, on_finish=None, on_success=None, auto_close=False):
+        super(ExecUpload, self).__init__(parent=parent, auto_close=auto_close)
         self.schema = schema
         self.name = name
         self.shapefile = shapefile
