@@ -2,8 +2,9 @@
 from argparse import ArgumentParser
 from verschneidungstool.control import MainWindow
 import sys
+import os
 from PyQt4 import QtGui
-from verschneidungstool.config import Config
+from verschneidungstool.config import Config, DEFAULT_SRID
 
 config = Config()
 config.read()
@@ -12,63 +13,63 @@ def startmain():
 
     parser = ArgumentParser(description="GUI Verschneidungstool")
 
-    parser.add_argument("-config", action="store_true",
+    parser.add_argument("--config", action="store_true",
                         help="Pfad zu einer XML-Config-Datei mit den Verbindungsdaten und Pfaden zu den Postgres-Tools (optional)",
                         dest="config")
 
-    parser.add_argument("-upload", action="store_true",
+    parser.add_argument("--upload", action="store_true",
                         help="Shapefile hochladen",
                         dest="upload")
 
-    parser.add_argument("-verschneiden", action="store_true",
+    parser.add_argument("--verschneiden", action="store_true",
                         help="Verschneidung durchführen",
                         dest="intersection")
 
-    parser.add_argument("-download", action="store_true",
+    parser.add_argument("--download", action="store_true",
                         help="Ergebnisse herunterladen",
                         dest="download")
 
-    parser.add_argument("-shapefile", action="store",
+    parser.add_argument("--shapefile", action="store",
                         help="Pfad zur Datei (Pflicht bei Shapefile-Upload)",
                         dest="shape_path")
 
-    parser.add_argument("-dpfad", action="store",
+    parser.add_argument("--dpfad", action="store",
                         help="Dateipfad für Ergebnisdownload, Dateiendung bestimmt Datentyp: shp/csv/xls (Pflicht bei Download)",
                         dest="download_file")
 
-    parser.add_argument("-jahr", action="store",
+    parser.add_argument('-j', "--jahr", action="store",
                         help="Jahr der herunterzuladenden Ergebnisse",
                         dest="year")
 
-    parser.add_argument("-schema", action="store",
+    parser.add_argument("--schema", action="store", default='verkehrszellen',
                         help="Datenbankschema (Pflicht bei Shapefile-Upload und Verschneidung)",
                         dest="schema")
 
-    parser.add_argument("-name", action="store",
+    parser.add_argument("--name", action="store",
                         help="Name der Tabelle mit den Shapes (optional bei Shapefile-Upload, Pflicht bei Verschneidung)",
                         dest="table_name")
 
-    parser.add_argument("-srid", action="store",
-                        help="Projektion des Shapefiles bei Shapefile-Upload (optional bei Shapefile-Upload)",
+    parser.add_argument("--srid", action="store", default=DEFAULT_SRID,
+                        help="Projektion des Shapefiles bei Shapefile-Upload (default: {d})".format(d=DEFAULT_SRID),
                         dest="srid")
 
-    parser.add_argument("-gebiet_id", action="store",
-                        help="Spalte für ID bei Shapefile-Upload (optional bei Shapefile-Upload)",
+    DEFAULT_ColId = 'no'
+    parser.add_argument("--gebiet_id", action="store", default=DEFAULT_ColId,
+                        help="Spalte für ID bei Shapefile-Upload (Default: {d})".format(d=DEFAULT_ColId),
                         dest="c_id")
 
-    parser.add_argument("-gebiet_name", action="store",
-                        help="Spalte mit Gebietsnamen bei Shapefile-Upload (optional bei Shapefile-Upload)",
+    DEFAULT_ColName = 'name'
+    parser.add_argument("--gebiet_name", action="store", default=DEFAULT_ColName,
+                        help="Spalte mit Gebietsnamen bei Shapefile-Upload (Default: {d})".format(d=DEFAULT_ColName),
                         dest="c_name")
 
-    #parser.add_argument("-shape", action="store",
-                        #help="shapefile hochladen",
-                        #dest="shape_file", default=None)
-
-    #parser.add_argument("-run", action="store",
-                        #help="angegebenes Szenario ausführen",
-                        #dest="scenario_name", default=None)
-
     arguments = parser.parse_args()
+
+    if arguments.download_file:
+        ext = os.path.splitext(arguments.download_file)
+        if not ext[1] in ['.csv', '.shp', '.xls']:
+            print('gültige Dateiendung für Datentyp .shp, .csv oder .xls wählen')
+            exit(1)
 
     if arguments.upload and (not arguments.shape_path or not arguments.schema):
         print('Um ein Shapefile hochzuladen, müssen Pfad zum Shapefile und Zielschema angegeben sein.')
