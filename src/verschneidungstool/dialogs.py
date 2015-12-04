@@ -212,7 +212,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
     def auto_start(self):
         shapefile = self.auto_args['shape_path']
         self.shapefile_edit.setText(shapefile)
-        self.schema_combo.addItem(self.auto_args['scheme'])
+        self.schema_combo.addItem(self.auto_args['schema'])
         srid = self.auto_args['srid']
         self.analyse_projection_file()
         name = self.auto_args['table_name']
@@ -613,8 +613,8 @@ class ExecUpload(ExecDialog):
 
 
 class ExecShapeDownload(ExecDialog):
-    def __init__(self, db_connection, columns, filename, parent=None):
-        super(ExecShapeDownload, self).__init__(parent=parent)
+    def __init__(self, db_connection, columns, filename, parent=None, auto_close=False):
+        super(ExecShapeDownload, self).__init__(parent=parent, auto_close=auto_close)
         self.filename = filename
         self.db_connection = db_connection
         self.columns = columns

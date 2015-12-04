@@ -24,13 +24,25 @@ def startmain():
                         help="Verschneidung durchführen",
                         dest="intersection")
 
-    parser.add_argument("-pfad", action="store",
-                        help="Pfad zum Shapefile (Pflicht bei Shapefile-Upload)",
+    parser.add_argument("-download", action="store_true",
+                        help="Ergebnisse herunterladen",
+                        dest="download")
+
+    parser.add_argument("-shapefile", action="store",
+                        help="Pfad zur Datei (Pflicht bei Shapefile-Upload)",
                         dest="shape_path")
+
+    parser.add_argument("-dpfad", action="store",
+                        help="Dateipfad für Ergebnisdownload, Dateiendung bestimmt Datentyp: shp/csv/xls (Pflicht bei Download)",
+                        dest="download_file")
+
+    parser.add_argument("-jahr", action="store",
+                        help="Jahr der herunterzuladenden Ergebnisse",
+                        dest="year")
 
     parser.add_argument("-schema", action="store",
                         help="Datenbankschema (Pflicht bei Shapefile-Upload und Verschneidung)",
-                        dest="scheme")
+                        dest="schema")
 
     parser.add_argument("-name", action="store",
                         help="Name der Tabelle mit den Shapes (optional bei Shapefile-Upload, Pflicht bei Verschneidung)",
@@ -58,12 +70,16 @@ def startmain():
 
     arguments = parser.parse_args()
 
-    if arguments.upload and (not arguments.shape_path or not arguments.scheme):
+    if arguments.upload and (not arguments.shape_path or not arguments.schema):
         print('Um ein Shapefile hochzuladen, müssen Pfad zum Shapefile und Zielschema angegeben sein.')
         exit(1)
 
-    if arguments.intersection and (not arguments.table_name or not arguments.scheme):
-        print('Um eine Verschneidung durchzuführen hochzuladen, müssen Schema und Tabellenname mit den Shapes angegeben sein')
+    if arguments.intersection and (not arguments.table_name or not arguments.schema):
+        print('Um eine Verschneidung durchzuführen hochzuladen, müssen Schema und Tabellenname mit den Shapes angegeben sein.')
+        exit(1)
+
+    if arguments.download and (not arguments.table_name or not arguments.schema or not arguments.download_file or not arguments.year):
+        print('Für den Download von Ergebnissen, müssen Schema und Tabellenname der Aggregationsstufe, ein Dateiname und das Jahr der Ergebnisse angegeben werden.')
         exit(1)
 
     app = QtGui.QApplication(sys.argv)

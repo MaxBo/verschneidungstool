@@ -4,6 +4,7 @@ from verschneidungstool.model import DBConnection
 from verschneidungstool.dialogs import SettingsDialog, UploadDialog, ExecShapeDownload, IntersectionDialog
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
+import os
 from verschneidungstool.config import Config
 
 config = Config()
@@ -45,7 +46,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     def exec_arguments(self, arguments):
         self.arguments = arguments
 
-        if not arguments.upload and not arguments.intersection:
+        if not arguments.upload and not arguments.intersection and not arguments.download:
             return
 
         #connect automatically
@@ -56,7 +57,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         if arguments.upload:
             auto_args = {
                 'shape_path': arguments.shape_path,
-                'scheme': arguments.scheme,
+                'schema': arguments.schema,
                 'table_name': arguments.table_name,
                 'srid': arguments.srid,
                 'c_id': arguments.c_id,
@@ -66,10 +67,19 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         if arguments.intersection:
             auto_args = {
-                'scheme': arguments.scheme,
+                'schema': arguments.schema,
                 'table_name': arguments.table_name,
             }
             self.intersect(auto_args)
+
+        if arguments.download:
+            auto_args = {
+                'schema': arguments.schema,
+                'table_name': arguments.table_name,
+                'download_file': arguments.download_file,
+                'year': arguments.year
+            }
+            self.download_results(auto_args)
 
         self.close()
         exit(1)
@@ -246,7 +256,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     '''
     returns a list of all checked sub-categories in the tree view
     '''
-    def get_selected(self):
+    def get_selected(self, get_all=False):
         root = self.structure_tree.invisibleRootItem()
         cat_count = root.childCount()
         checked = []
@@ -257,7 +267,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             # get checked sub-categories
             for j in range(col_count):
                 col_item = cat_item.child(j)
-                if(col_item.checkState(0) == QtCore.Qt.Checked):
+                if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
                     checked.append(str(col_item.text(0)))
         return checked
 
@@ -280,7 +290,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             schema = str(item[1].toString())
             table = str(item[2].toString())
         else:
-            schema = auto_args['scheme']
+            schema = auto_args['schema']
             table = auto_args['table_name']
 
         intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=True)
@@ -298,21 +308,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         upDiag = UploadDialog(self.db_conn, schemata, parent=self, on_finish=self.render_areas,
                               reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
 
-    def download_results(self):
-        selected_columns = self.get_selected()
-
-        if len(selected_columns) == 0:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8('Sie haben keine Kategorie ausgewählt!\n' +
-                                                 'Bitte wählen sie eine oder mehrere aus,\n' +
-                                                 'um zugehörige Daten zu erhalten.'))
-            msgBox.exec_()
-            return
-
-        selected_area = self.layer_combo.currentText()
-        idx = self.layer_combo.currentIndex()
-        schema = self.layer_combo.itemData(idx).toList()[1].toString()
-        table = self.layer_combo.itemData(idx).toList()[2].toString()
+    def download_results(self, auto_args):
+        if auto_args:
+            get_all = True
+        else:
+            get_all = False
+        selected_columns = self.get_selected(get_all)
         last_calc = self.db_conn.get_last_calculated()
 
         if not last_calc[0].finished:
@@ -321,6 +322,26 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                                                  'Bitte warten Sie, bis diese abgeschlossen ist.'))
             msgBox.exec_()
             return
+
+        if not auto_args:
+            if len(selected_columns) == 0:
+                msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                           _fromUtf8('Sie haben keine Kategorie ausgewählt!\n' +
+                                                     'Bitte wählen sie eine oder mehrere aus,\n' +
+                                                     'um zugehörige Daten zu erhalten.'))
+                msgBox.exec_()
+                return
+
+            selected_area = self.layer_combo.currentText()
+            idx = self.layer_combo.currentIndex()
+            schema = self.layer_combo.itemData(idx).toList()[1].toString()
+            table = self.layer_combo.itemData(idx).toList()[2].toString()
+            year = str(self.year_combo.currentText())
+
+        else:
+            selected_area = table = auto_args['table_name']
+            schema = auto_args['schema']
+            year = auto_args['year']
 
         if len(last_calc) == 0 or last_calc[0].area_name != selected_area or last_calc[0].schema != schema:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
@@ -331,25 +352,48 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             return
 
         # set year (referenced by db-view on results)
-        year = str(self.year_combo.currentText())
         self.db_conn.set_current_year(year)
 
-        if self.csv_radio_button.isChecked():
-            filename = QtGui.QFileDialog.getSaveFileName(
-                self, _fromUtf8('Speichern unter'), 'results.csv', '*.csv')
-            if len(filename) > 0:
-                self.db_conn.results_to_csv(selected_columns, filename)
+        csv = shp = xls = False
 
-        if self.excel_radio_button.isChecked():
-            filename = QtGui.QFileDialog.getSaveFileName(
-                self, _fromUtf8('Speichern unter'), 'results.xls', '*.xls')
-            if len(filename) > 0:
-                self.db_conn.results_to_excel(selected_columns, filename)
+        if not auto_args:
+            if self.csv_radio_button.isChecked():
+                filename = QtGui.QFileDialog.getSaveFileName(
+                    self, _fromUtf8('Speichern unter'), 'results.csv', '*.csv')
+                if len(filename) > 0:
+                    csv = True
 
-        if self.shape_radio_button.isChecked():
-            filename = QtGui.QFileDialog.getSaveFileName(
-                self, _fromUtf8('Speichern unter'), 'results.shp', '*.shp')
-            if len(filename) > 0:
-                diag = ExecShapeDownload(
-                    self.db_conn, selected_columns, filename, parent=self)
+            elif self.excel_radio_button.isChecked():
+                filename = QtGui.QFileDialog.getSaveFileName(
+                    self, _fromUtf8('Speichern unter'), 'results.xls', '*.xls')
+                if len(filename) > 0:
+                    xls = True
 
+            elif self.shape_radio_button.isChecked():
+                filename = QtGui.QFileDialog.getSaveFileName(
+                    self, _fromUtf8('Speichern unter'), 'results.shp', '*.shp')
+                if len(filename) > 0:
+                    shp = True
+
+        else:
+            filename = auto_args['download_file']
+            f, extension = os.path.splitext(filename)
+            if extension == '.csv':
+                csv = True
+            elif extension == '.xls':
+                xls = True
+            elif extension == '.shp':
+                shp = True
+            else:
+                msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                           _fromUtf8("Angegebene Dateiendung wird nicht unterstützt!"))
+                msgBox.exec_()
+                return
+
+        if csv:
+            self.db_conn.results_to_csv(selected_columns, filename)
+        elif xls:
+            self.db_conn.results_to_excel(selected_columns, filename)
+        elif shp:
+            diag = ExecShapeDownload(
+            self.db_conn, selected_columns, filename, parent=self, auto_close=True)
