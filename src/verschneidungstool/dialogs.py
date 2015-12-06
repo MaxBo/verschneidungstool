@@ -486,7 +486,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        self.log_edit.insertHtml(str(text) + '<br>')
+        self.log_edit.insertHtml(str(text.toLocal8Bit()) + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
             if isinstance(progress, QtCore.QVariant):

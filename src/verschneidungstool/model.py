@@ -373,7 +373,7 @@ class DBConnection(object):
                 progress = 0
 
                 for query in queries:
-                    self.emit(signal, query.message, progress)
+                    self.emit(signal, query.message.decode('utf8'), progress)
                     execute(query.command)
                     progress += (query.weight / weight_sum) * 100
 
