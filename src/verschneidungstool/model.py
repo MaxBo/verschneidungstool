@@ -64,7 +64,7 @@ class DBConnection(object):
             for record in col_avail:
                 if not (self.colums_available.has_key(record.table_type)):
                     self.colums_available[record.table_type] = []
-                self.colums_available[record.table_type].append(record.column)
+                self.colums_available[record.table_type].append({'name': record.column, 'description': record.description})
 
         sql_cat = """
         SELECT tc.name

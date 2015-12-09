@@ -222,7 +222,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             cat_item.setCheckState(0,QtCore.Qt.Unchecked)
             cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
             for col in cols:
-                col_item = QtGui.QTreeWidgetItem(cat_item, [col])
+                col_item = QtGui.QTreeWidgetItem(cat_item, [col['name']])
+                col_item.setText(1, _fromUtf8(col['description']))
                 col_item.setCheckState(0,QtCore.Qt.Unchecked)
                 col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
