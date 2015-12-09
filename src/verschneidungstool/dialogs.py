@@ -416,6 +416,32 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
                     self.projection_combo.setCurrentIndex(len(self.projection_combo) - 1)
 
         self.message_edit.append(message)
+        
+
+class UploadAreaDialog(UploadDialog):
+    '''
+    open a dialog to set the project name and folder and afterwards create
+    a new project
+    '''
+
+    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+        super(UploadAreaDialog, self).__init__(db_connection, schemata, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        #self.parent = parent
+        #self.on_finish = on_finish
+        #self.on_success = on_success
+        #self.db_connection = db_connection
+        #self.reserved_names = reserved_names
+        #self.setupUi(self)
+        #self.auto_args = auto_args
+        
+class UploadStationDialog(UploadDialog):
+    '''
+    open a dialog to set the project name and folder and afterwards create
+    a new project
+    '''
+
+    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+        super(UploadStationDialog, self).__init__(db_connection, schemata, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
 
 
 class SelectDialog(QtGui.QDialog):

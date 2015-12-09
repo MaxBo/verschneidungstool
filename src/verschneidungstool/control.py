@@ -25,8 +25,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         header = QtGui.QTreeWidgetItem(["Kategorie","Beschreibung"])
         self.structure_tree.setHeaderItem(header)
         self.structure_tree.itemClicked.connect(self.check_status)
-        self.add_layer_button.clicked.connect(self.upload_shape)
+        self.add_layer_button.clicked.connect(self.upload_area_shape)
+        self.add_stations_button.clicked.connect(self.upload_station_shape)
         self.delete_layer_button.clicked.connect(self.remove_area)
+        self.delete_stations_button.clicked.connect(self.remove_station)
         self.intersect_button.clicked.connect(self.intersect)
         # workaround: QT-Designer always sets this button to disabled, ignoring settings
         self.intersect_button.setEnabled(True)
@@ -38,6 +40,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.actionEinstellungen.triggered.connect(self.edit_settings)
 
         self.layer_combo.currentIndexChanged['QString'].connect(self.area_changed)
+        self.stations_combo.currentIndexChanged['QString'].connect(self.station_changed)
         self.year_combo.currentIndexChanged['QString'].connect(self.view_structure)
 
         self.dbconnect_button.clicked.connect(self.db_reset)
@@ -63,7 +66,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                 'c_id': arguments.c_id,
                 'c_name': arguments.c_name
             }
-            self.upload_shape(auto_args=auto_args)
+            self.upload_area_shape(auto_args=auto_args)
 
         if arguments.intersection:
             auto_args = {
@@ -107,6 +110,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             return False
         if not self.render_areas():
             return False
+        if not self.render_stations():
+            return False
         if not self.render_years():
             return False
 
@@ -126,6 +131,16 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         self.area_changed()
         return True
+    
+    def render_stations(self):
+        self.stations_combo.clear()
+        if not self.refresh_attr(['stations']):
+            return False
+        for name, schema, can_be_deleted in self.stations:
+            self.stations_combo.addItem(name, [schema, can_be_deleted])
+
+        self.station_changed()
+        return True    
 
     def render_years(self):
         self.year_combo.clear()
@@ -148,6 +163,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             for attr in attributes:
                 if attr == 'areas':
                     self.areas = self.db_conn.get_areas_available()
+                if attr == 'stations':
+                    self.stations = self.db_conn.get_stations_available()
                 if attr == 'years':
                     self.years = self.db_conn.get_years_available()
                 if attr == 'schemata':
@@ -178,6 +195,20 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.delete_layer_button.setEnabled(True)
         else:
             self.delete_layer_button.setEnabled(False)
+            
+    '''
+    enable/disable delete button depending on whether area can be deleted or not
+    '''
+    def station_changed(self):
+        idx = self.stations_combo.currentIndex()
+        # nothing selected (e.g. when triggered on clearance)
+        if idx < 0:
+            return
+        can_be_deleted = self.stations_combo.itemData(idx).toList()[1].toBool()
+        if can_be_deleted:
+            self.delete_stations_button.setEnabled(True)
+        else:
+            self.delete_stations_button.setEnabled(False)            
 
     '''
     initiate removal of the selected area (aggregation layer) from the database
@@ -204,6 +235,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
 
         self.render_areas()
+        
+    '''
+    initiate removal of the selected station from the database
+    '''
+    def remove_station(self):
+        pass
 
 
     '''
@@ -298,7 +335,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         intersectDiag.exec_()
 
 
-    def upload_shape(self, auto_args = None):
+    def upload_area_shape(self, auto_args = None):
         schemata = [r.name for r in self.schemata]
         reserved_names = [self.layer_combo.itemText(i) for i in range(self.layer_combo.count())]
 
@@ -306,8 +343,19 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         def on_success():
             self.layer_combo.setCurrentIndex(self.layer_combo.count() - 1)
 
-        upDiag = UploadDialog(self.db_conn, schemata, parent=self, on_finish=self.render_areas,
-                              reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        upDiag = UploadAreaDialog(self.db_conn, schemata, parent=self, on_finish=self.render_areas,
+                                  reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        
+    def upload_station_shape(self, auto_args = None):
+        schemata = [r.name for r in self.schemata]
+        reserved_names = [self.stations_combo.itemText(i) for i in range(self.layer_combo.count())]
+
+        #if successfully uploaded, select last area = new area (important: on_finish has to be executed first!)
+        def on_success():
+            self.stations_combo.setCurrentIndex(self.stations_combo.count() - 1)
+
+        #upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_finish=self.render_stations,
+                                     #reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)    
 
     def download_results(self, auto_args):
         if auto_args:

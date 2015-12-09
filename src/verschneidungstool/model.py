@@ -43,6 +43,14 @@ class DBConnection(object):
         ORDER BY id
         """
         return self.fetch(sql)
+    
+    def get_stations_available(self):
+        sql = """
+        SELECT name, schema, can_be_deleted
+        FROM meta.haltestellen_available
+        ORDER BY name
+        """
+        return self.fetch(sql)    
 
     def get_years_available(self):
         sql = """

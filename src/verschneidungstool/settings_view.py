@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'settings.ui'
 #
-# Created: Fri Nov 27 10:47:39 2015
-#      by: PyQt4 UI code generator 4.11.2
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -57,7 +56,6 @@ class Ui_Settings(object):
         self.gridLayoutWidget_2.setGeometry(QtCore.QRect(10, 10, 491, 161))
         self.gridLayoutWidget_2.setObjectName(_fromUtf8("gridLayoutWidget_2"))
         self.gridLayout_3 = QtGui.QGridLayout(self.gridLayoutWidget_2)
-        self.gridLayout_3.setMargin(0)
         self.gridLayout_3.setObjectName(_fromUtf8("gridLayout_3"))
         self.label_5 = QtGui.QLabel(self.gridLayoutWidget_2)
         self.label_5.setObjectName(_fromUtf8("label_5"))
@@ -110,7 +108,6 @@ class Ui_Settings(object):
         self.gridLayoutWidget_3.setGeometry(QtCore.QRect(10, 30, 491, 128))
         self.gridLayoutWidget_3.setObjectName(_fromUtf8("gridLayoutWidget_3"))
         self.gridLayout_4 = QtGui.QGridLayout(self.gridLayoutWidget_3)
-        self.gridLayout_4.setMargin(0)
         self.gridLayout_4.setObjectName(_fromUtf8("gridLayout_4"))
         self.label_6 = QtGui.QLabel(self.gridLayoutWidget_3)
         self.label_6.setObjectName(_fromUtf8("label_6"))
