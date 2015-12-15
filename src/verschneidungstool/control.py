@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog
+from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog, DownloadDataDialog
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
 import os
@@ -30,8 +30,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.delete_layer_button.clicked.connect(self.remove_area)
         self.delete_stations_button.clicked.connect(self.remove_stations)
         self.intersect_button.clicked.connect(self.intersect)
+        self.download_tables_button.clicked.connect(self.download_tables)
         # workaround: QT-Designer always sets this button to disabled, ignoring settings
         self.intersect_button.setEnabled(True)
+        self.download_tables_button.setEnabled(True)
 
         self.results_button.clicked.connect(self.download_results)
 
@@ -41,7 +43,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         self.layer_combo.currentIndexChanged['QString'].connect(self.area_changed)
         self.stations_combo.currentIndexChanged['QString'].connect(self.station_changed)
-        self.year_combo.currentIndexChanged['QString'].connect(self.view_structure)
+        self.year_combo.currentIndexChanged['QString'].connect(self.render_structure)
 
         self.dbconnect_button.clicked.connect(self.db_reset)
 
@@ -118,6 +120,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # you only get here, if no errors occured
         self.main_frame.setEnabled(True)
         self.download_frame.setEnabled(True)
+        self.download_tables_frame.setEnabled(True)
         self.intersect_frame.setEnabled(True)
         self.dbconnect_button.setText('Verbindung erneuern')
         return True
@@ -149,7 +152,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         for year, in self.years:
             self.year_combo.addItem(str(year))
 
-        self.view_structure()
+        self.render_structure()
         return True
 
     '''
@@ -178,6 +181,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.main_frame.setEnabled(False)
             self.intersect_frame.setEnabled(False)
             self.download_frame.setEnabled(False)
+            self.download_tables_frame.setEnabled(False)
             self.dbconnect_button.setText('mit Datenbank verbinden')
             return False
 
@@ -268,13 +272,11 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
 
         self.render_stations()
-        
-
 
     '''
     fill the tree view with categories and subcategories depending on year selection
     '''
-    def view_structure(self):
+    def render_structure(self):
         idx = self.year_combo.currentIndex()
         # nothing selected (e.g. when triggered on clearance)
         if idx < 0:
@@ -292,7 +294,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                 col_item.setCheckState(0,QtCore.Qt.Unchecked)
                 col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
-
+        
     '''
     check the check-status of the item inside the tree view
     and accordingly update the check-status of it's parent / siblings
@@ -392,6 +394,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                     
         upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_success=on_success, on_finish=self.render_stations, reserved_names=reserved_names, auto_args=auto_args)    
 
+    def download_tables(self):
+        downloadDialog = DownloadDataDialog(self.db_conn, parent=self)
+    
     def download_results(self, auto_args):
         if auto_args:
             get_all = True

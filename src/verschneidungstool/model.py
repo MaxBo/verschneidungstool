@@ -59,6 +59,14 @@ class DBConnection(object):
         ORDER BY year
         """
         return self.fetch(sql)
+    
+    def get_tables_to_download(self):
+        sql = """
+        SELECT *
+        FROM meta.tables_to_download
+        ORDER BY name
+        """
+        return self.fetch(sql)    
 
     def get_structure_available(self, year):
         if not self.colums_available:

@@ -2,6 +2,7 @@
 from verschneidungstool.settings_view import Ui_Settings
 from verschneidungstool.upload_view import Ui_Upload
 from verschneidungstool.progress_view import Ui_ProgressDialog
+from verschneidungstool.download_data_view import Ui_DownloadDataDialog
 from PyQt4 import QtCore, QtGui
 from verschneidungstool.config import Config, DEFAULT_SRID
 from verschneidungstool.model import parse_projection_file, parse_projection_data
@@ -75,6 +76,14 @@ def set_file(parent, line_edit, extension, do_split=False):
     # filename is '' if canceled
     if len(filename) > 0:
         line_edit.setText(filename)
+
+def set_directory(parent, line_edit):
+    dirname = str(
+            QtGui.QFileDialog.getExistingDirectory(
+                parent, _fromUtf8('Zielverzeichnis wählen')))
+    # dirname is '' if canceled
+    if len(dirname) > 0:
+        line_edit.setText(dirname)    
 
 def validate_dbstring(string):
     '''
@@ -669,3 +678,19 @@ class ExecShapeDownload(ExecDialog):
         self.db_connection.results_to_shape(
             self.columns, self.process, self.filename,
             on_progress=self.show_status)
+        
+        
+class DownloadDataDialog(QtGui.QDialog, Ui_DownloadDataDialog):
+    def __init__(self, parent=None, on_change=None):
+        super(DownloadDataDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.download_button.clicked.connect(self.download)
+        self.cancel_button.clicked.connect(self.close)
+
+        self.select_dir_button.clicked.connect(
+            lambda: set_directory(self, self.dir_edit))
+
+        self.show()    
+        
+    def download(self):
+        pass
