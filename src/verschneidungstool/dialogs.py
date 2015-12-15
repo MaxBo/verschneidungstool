@@ -306,28 +306,6 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         self.upload_diag.exec_()
         return True
 
-    def set_zone(self):
-        # try to set zone with selected values, repeat if errors occure
-        id_key = self.pkey_combo.currentText()
-        name_key = self.names_combo.currentText()
-        success, msg = self.db_connection.set_zone(self.schema, self.name, zone_id_column=id_key, zone_name_column=name_key)
-        if success:
-            self.accept()
-        else:
-            msgBox = QtGui.QMessageBox(
-                QtGui.QMessageBox.Warning, "Warnung!",
-                "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
-            msgBox.exec_()
-
-    def selection_canceled(self):
-        # if cancelled try to set zone with defaults, continue in case of errors anyway
-        success, msg = self.db_connection.set_zone(self.schema, self.name)
-        if not success:
-            msgBox = QtGui.QMessageBox(
-            QtGui.QMessageBox.Warning, "Warnung!",
-            "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
-            msgBox.exec_()
-
     '''
     check for a .prj corresponding to the selected shapefile and get the description of the projection
     '''
@@ -414,6 +392,27 @@ class UploadAreaDialog(UploadShapeDialog):
         success = super(UploadAreaDialog, self).upload()
         if success and not self.auto_args:
             self.selectIdentifiers()
+            
+    def set_identifiers(self):
+        # try to set zone with selected values, repeat if errors occure
+        id_key = self.pkey_combo.currentText()
+        name_key = self.names_combo.currentText()
+        idx = self.hst_combo.currentIndex()
+        hst_id = self.hst_combo.itemData(idx).toList()[0].toInt()[0]
+        
+        success, msg = self.db_connection.set_zone(self.schema, self.name, hst_id, zone_id_column=id_key, zone_name_column=name_key)        
+        
+        if success:
+            self.accept()
+        else:
+            msgBox = QtGui.QMessageBox(
+                QtGui.QMessageBox.Warning, "Warnung!",
+                "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
+            msgBox.exec_()
+            
+    def set_default_stops(self):
+        idx = self.hst_combo.currentIndex()
+        def_stop_id = self.hst_combo.itemData(idx).toList()[0].toInt()
 
     '''
     removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
@@ -421,6 +420,8 @@ class UploadAreaDialog(UploadShapeDialog):
     def selectIdentifiers(self):
 
         self.upload_frame.setDisabled(True)
+        for id, name, schema, can_be_deleted in self.db_connection.get_stations_available():
+            self.hst_combo.addItem(name, [id])        
 
         key_columns = self.db_connection.get_column_names(self.schema, self.name)
         # remove column geom, this one shouldn't become pkey
@@ -432,8 +433,8 @@ class UploadAreaDialog(UploadShapeDialog):
         self.names_combo.addItems(name_columns)
 
         self.identifiers_frame.setDisabled(False)
-        self.OK_button.clicked.connect(self.set_zone)
-        self.cancel_button.clicked.connect(self.selection_canceled)
+        self.OK_button.clicked.connect(self.set_identifiers)
+        self.cancel_button.setDisabled(True)
         self.OK_button.setDisabled(False)        
         
 class UploadStationDialog(UploadShapeDialog):

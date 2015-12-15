@@ -108,9 +108,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # render main attributes
         if not self.refresh_attr(['schemata']):
             return False
-        if not self.render_areas():
-            return False
         if not self.render_stations():
+            return False
+        if not self.render_areas():
             return False
         if not self.render_years():
             return False
@@ -126,8 +126,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.layer_combo.clear()
         if not self.refresh_attr(['areas']):
             return False
-        for id, area_name, schema, table_name, can_be_deleted in self.areas:
-            self.layer_combo.addItem(area_name, [id, schema, table_name, can_be_deleted])
+        for id, area_name, schema, table_name, can_be_deleted, default_stops in self.areas:
+            self.layer_combo.addItem(area_name, [id, schema, table_name, can_be_deleted, default_stops])
 
         self.area_changed()
         return True
@@ -190,11 +190,19 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # nothing selected (e.g. when triggered on clearance)
         if idx < 0:
             return
-        can_be_deleted = self.layer_combo.itemData(idx).toList()[3].toBool()
+        selected_data = self.layer_combo.itemData(idx).toList()
+        can_be_deleted = selected_data[3].toBool()
+        hst_id = selected_data[4].toInt()[0]
         if can_be_deleted:
             self.delete_layer_button.setEnabled(True)
         else:
             self.delete_layer_button.setEnabled(False)
+            
+        # select default stop
+        for i in reversed(range(self.stations_combo.count())):
+            if self.stations_combo.itemData(i).toList()[0].toInt()[0] == hst_id:
+                break
+        self.stations_combo.setCurrentIndex(i)
             
     '''
     enable/disable delete button depending on whether area can be deleted or not
@@ -370,10 +378,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         
     def upload_station_shape(self, auto_args = None):
         schemata = [r.name for r in self.schemata]
-        reserved_names = [self.stations_combo.itemText(i) for i in range(self.layer_combo.count())]
-
-        upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_finish=self.render_stations,
-                                     reserved_names=reserved_names, auto_args=auto_args)    
+        reserved_names = [self.stations_combo.itemText(i) for i in range(self.stations_combo.count())]
+        
+        #if successfully uploaded, select last area = new area (important: on_finish has to be executed first!)
+        def on_success():
+            self.stations_combo.setCurrentIndex(self.stations_combo.count() - 1)
+                    
+        upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_success=on_success, on_finish=self.render_stations, reserved_names=reserved_names, auto_args=auto_args)    
 
     def download_results(self, auto_args):
         if auto_args:

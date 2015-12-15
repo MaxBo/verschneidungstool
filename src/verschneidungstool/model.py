@@ -38,7 +38,7 @@ class DBConnection(object):
 
     def get_areas_available(self):
         sql = """
-        SELECT id, area_name, schema, table_name, can_be_deleted
+        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops
         FROM meta.areas_available
         ORDER BY id
         """
@@ -48,7 +48,7 @@ class DBConnection(object):
         sql = """
         SELECT id, name, schema, can_be_deleted
         FROM meta.haltestellen_available
-        ORDER BY name
+        ORDER BY id
         """
         return self.fetch(sql)    
 
@@ -212,12 +212,12 @@ class DBConnection(object):
         return ret
 
     '''
-    set the columns with the zone-id and zone-name for the given area table
+    set the columns with the zone-id, zone-name and default_stops for the given area table
     makes an entry in the areas_available table, that this column is preferred as pkey
     returns True if successful
     returns False if not (e.g. column isn't unique, table doesn't exist)
     '''
-    def set_zone(self, schema, table, zone_id_column=None, zone_name_column=''):
+    def set_zone(self, schema, table, hst_id, zone_id_column=None, zone_name_column=''):
 
         # zone-id
         sql_unique = """
@@ -231,6 +231,8 @@ class DBConnection(object):
         pkey = pkey[0]
         if not zone_id_column:
             zone_id_column = pkey
+        if not zone_name_column:
+            zone_name_column = zone_id_column
         else:
             # set custom zone-id column to unique to check if values are unique
             try:
@@ -241,13 +243,13 @@ class DBConnection(object):
 
         sql_update = """
         UPDATE meta.areas_available
-        SET pkey='{pkey}', zone_id='{zone_id}', zone_name='{zone_name}'
+        SET pkey='{pkey}', zone_id='{zone_id}', zone_name='{zone_name}', default_stops={hst_id}
         WHERE schema='{schema}'
         AND table_name='{table}'
         """
         # update the meta table
         self.execute(sql_update.format(pkey=pkey, zone_id=zone_id_column,
-                                       zone_name=zone_name_column,
+                                       zone_name=zone_name_column, hst_id=hst_id,
                                        schema=schema, table=table))
         return True, ''
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>550</width>
-    <height>420</height>
+    <height>450</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>550</width>
-    <height>420</height>
+    <height>450</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>550</width>
-    <height>420</height>
+    <height>450</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -41,7 +41,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>370</y>
+     <y>400</y>
      <width>541</width>
      <height>41</height>
     </rect>
@@ -228,7 +228,7 @@
      <x>0</x>
      <y>280</y>
      <width>561</width>
-     <height>91</height>
+     <height>121</height>
     </rect>
    </property>
    <property name="title">
@@ -240,29 +240,52 @@
       <x>10</x>
       <y>20</y>
       <width>531</width>
-      <height>61</height>
+      <height>93</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="select_ids_layout">
      <item row="1" column="1">
+      <widget class="QComboBox" name="pkey_combo"/>
+     </item>
+     <item row="2" column="1">
       <widget class="QComboBox" name="names_combo"/>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Wählen Sie die Spalte mit den Gebietsnamen aus.</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
         <string>Wählen Sie eine Spalte für die eindeutige Identifizierung der Gebiete aus.</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="pkey_combo"/>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Wählen Sie die Spalte mit den Gebietsnamen aus.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Wählen Sie die Standard-Haltestellen für die Aggregation aus.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="hst_combo"/>
+     </item>
+     <item row="3" column="0">
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>40</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </widget>
