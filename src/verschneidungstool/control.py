@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import SettingsDialog, UploadDialog, ExecShapeDownload, IntersectionDialog
+from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
 import os
@@ -136,8 +136,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.stations_combo.clear()
         if not self.refresh_attr(['stations']):
             return False
-        for name, schema, can_be_deleted in self.stations:
-            self.stations_combo.addItem(name, [schema, can_be_deleted])
+        for id, name, schema, can_be_deleted in self.stations:
+            self.stations_combo.addItem(name, [id, schema, can_be_deleted])
 
         self.station_changed()
         return True    
@@ -204,7 +204,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # nothing selected (e.g. when triggered on clearance)
         if idx < 0:
             return
-        can_be_deleted = self.stations_combo.itemData(idx).toList()[1].toBool()
+        can_be_deleted = self.stations_combo.itemData(idx).toList()[2].toBool()
         if can_be_deleted:
             self.delete_stations_button.setEnabled(True)
         else:
@@ -240,7 +240,27 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     initiate removal of the selected station from the database
     '''
     def remove_station(self):
-        pass
+        selected_data = self.stations_combo.itemData(self.stations_combo.currentIndex()).toList()
+        can_be_deleted = selected_data[2].toBool()
+        # do nothing, if area can't be deleted (you shouldn't get here anyway, because button is disabled)
+        if not can_be_deleted:
+            return
+        
+        schema = selected_data[1].toString()
+        id = selected_data[0].toString()
+        table_name = self.stations_combo.currentText()
+        success, msg= self.db_conn.drop_stations(id, table_name, schema)
+        if success:
+            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Erfolg",
+                                       _fromUtf8(msg))
+            msgBox.exec_()
+        else:
+            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                       _fromUtf8(msg))
+            msgBox.exec_()
+
+        self.render_stations()
+        
 
 
     '''
@@ -315,6 +335,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     def intersect(self, auto_args):
 
         last_calc = self.db_conn.get_last_calculated()
+        auto_close = False
 
         if len(last_calc) > 0 and not last_calc[0].finished:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
@@ -323,15 +344,16 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
             return
 
-        if not auto_args:
+        if not auto_args:            
             item = self.layer_combo.itemData(self.layer_combo.currentIndex()).toList()
             schema = str(item[1].toString())
             table = str(item[2].toString())
         else:
             schema = auto_args['schema']
             table = auto_args['table_name']
+            auto_close = True
 
-        intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=True)
+        intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=auto_close)
         intersectDiag.exec_()
 
 
@@ -350,12 +372,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         schemata = [r.name for r in self.schemata]
         reserved_names = [self.stations_combo.itemText(i) for i in range(self.layer_combo.count())]
 
-        #if successfully uploaded, select last area = new area (important: on_finish has to be executed first!)
-        def on_success():
-            self.stations_combo.setCurrentIndex(self.stations_combo.count() - 1)
-
-        #upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_finish=self.render_stations,
-                                     #reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)    
+        upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_finish=self.render_stations,
+                                     reserved_names=reserved_names, auto_args=auto_args)    
 
     def download_results(self, auto_args):
         if auto_args:
@@ -404,6 +422,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.db_conn.set_current_year(year)
 
         csv = shp = xls = False
+        
+        auto_close = False
 
         if not auto_args:
             if self.csv_radio_button.isChecked():
@@ -425,6 +445,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                     shp = True
 
         else:
+            auto_close = True
             filename = auto_args['download_file']
             f, extension = os.path.splitext(filename)
             if extension == '.csv':
@@ -445,4 +466,4 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.db_conn.results_to_excel(selected_columns, filename)
         elif shp:
             diag = ExecShapeDownload(
-            self.db_conn, selected_columns, filename, parent=self, auto_close=True)
+            self.db_conn, selected_columns, filename, parent=self, auto_close=auto_close)

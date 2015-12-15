@@ -170,14 +170,13 @@ class SettingsDialog(QtGui.QDialog, Ui_Settings):
             line_edit.setText(folder)
 
 
-class UploadDialog(QtGui.QDialog, Ui_Upload):
+class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
     '''
-    open a dialog to set the project name and folder and afterwards create
-    a new project
+    dialog for uploading shape files
     '''
 
-    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
-        super(UploadDialog, self).__init__(parent)
+    def __init__(self, db_connection, schemata, upload_function, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+        super(UploadShapeDialog, self).__init__(parent)
         self.parent = parent
         self.on_finish = on_finish
         self.on_success = on_success
@@ -185,6 +184,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
         self.reserved_names = reserved_names
         self.setupUi(self)
         self.auto_args = auto_args
+        self.upload_function = upload_function
 
         projections_available = self.db_connection.get_projections_available()
         # add available projections to combobox
@@ -199,15 +199,15 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
         self.check_projection_button.setEnabled(False)
         self.upload_button.clicked.connect(self.upload)
         self.cancel_button.clicked.connect(self.close)
-        self.OK_button.setDisabled(True)
         self.identifiers_frame.setDisabled(True)
+        self.identifiers_frame.setHidden(True)
         self.schema_combo.addItems(schemata)
+        self.OK_button.setDisabled(True)  
 
         self.show()
 
         if auto_args:
             self.auto_start()
-
 
     def auto_start(self):
         shapefile = self.auto_args['shape_path']
@@ -277,7 +277,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                        "Die angegebene Datei existiert nicht!")
             msgBox.exec_()
-            return
+            return False
         if not validate_dbstring(self.name):
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, 'Warnung!',
                                        'Der angegebene Name entspricht nicht\n' +
@@ -285,7 +285,7 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
                                        '"^[a-z_][a-z0-9_]*$"\n' +
                                        '(nur Kleinbuchstaben, Ziffern und Unterstrich erlaubt)')
             msgBox.exec_()
-            return
+            return False
 
         if self.reserved_names:
             for r in self.reserved_names:
@@ -293,36 +293,18 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
                     msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                                "Der Name '{}' ist bereits vergeben!".format(self.name))
                     msgBox.exec_()
-                    return
+                    return False
 
         if proj_not_in_db:
             self.db_connection.add_projection(srid, desc)
-        self.upload_diag = ExecUpload(self.db_connection, self.schema, self.name, shapefile,
-                                      parent=self, srid=srid, on_finish=self.on_finish, on_success=self.on_success, auto_close=True)
+        if self.auto_args:
+            auto_close = True
+        else:
+            auto_close = False
+        self.upload_diag = ExecUploadShape(self.db_connection, self.schema, self.name, shapefile, self.upload_function,
+                                      parent=self, srid=srid, on_finish=self.on_finish, on_success=self.on_success, auto_close=auto_close)
         self.upload_diag.exec_()
-        if not self.auto_args:
-            self.selectIdentifiers()
-
-    '''
-    removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
-    '''
-    def selectIdentifiers(self):
-
-        self.upload_frame.setDisabled(True)
-
-        key_columns = self.db_connection.get_column_names(self.schema, self.name)
-        # remove column geom, this one shouldn't become pkey
-        key_columns = [col.column_name for col in key_columns if col.column_name != 'geom']
-        # selection for names is same list with leading empty element
-        name_columns = [''] + copy.deepcopy(key_columns)
-
-        self.pkey_combo.addItems(key_columns)
-        self.names_combo.addItems(name_columns)
-
-        self.identifiers_frame.setDisabled(False)
-        self.OK_button.clicked.connect(self.set_zone)
-        self.cancel_button.clicked.connect(self.selection_canceled)
-        self.OK_button.setDisabled(False)
+        return True
 
     def set_zone(self):
         # try to set zone with selected values, repeat if errors occure
@@ -418,32 +400,58 @@ class UploadDialog(QtGui.QDialog, Ui_Upload):
         self.message_edit.append(message)
         
 
-class UploadAreaDialog(UploadDialog):
+class UploadAreaDialog(UploadShapeDialog):
     '''
-    open a dialog to set the project name and folder and afterwards create
-    a new project
+    dialog for uploading shapes to define areas, adds a second step (selecting identifiers) to UploadShapeDialog
     '''
-
     def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
-        super(UploadAreaDialog, self).__init__(db_connection, schemata, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
-        #self.parent = parent
-        #self.on_finish = on_finish
-        #self.on_success = on_success
-        #self.db_connection = db_connection
-        #self.reserved_names = reserved_names
-        #self.setupUi(self)
-        #self.auto_args = auto_args
+        upload_function = db_connection.add_area
+        super(UploadAreaDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)        
+        self.identifiers_frame.setHidden(False)      
+        self.OK_button.setDisabled(True)
+    
+    def upload(self):
+        success = super(UploadAreaDialog, self).upload()
+        if success and not self.auto_args:
+            self.selectIdentifiers()
+
+    '''
+    removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
+    '''
+    def selectIdentifiers(self):
+
+        self.upload_frame.setDisabled(True)
+
+        key_columns = self.db_connection.get_column_names(self.schema, self.name)
+        # remove column geom, this one shouldn't become pkey
+        key_columns = [col.column_name for col in key_columns if col.column_name != 'geom']
+        # selection for names is same list with leading empty element
+        name_columns = [''] + copy.deepcopy(key_columns)
+
+        self.pkey_combo.addItems(key_columns)
+        self.names_combo.addItems(name_columns)
+
+        self.identifiers_frame.setDisabled(False)
+        self.OK_button.clicked.connect(self.set_zone)
+        self.cancel_button.clicked.connect(self.selection_canceled)
+        self.OK_button.setDisabled(False)        
         
-class UploadStationDialog(UploadDialog):
+class UploadStationDialog(UploadShapeDialog):
     '''
-    open a dialog to set the project name and folder and afterwards create
-    a new project
+    dialog for uploading shapes to add stations (no second step)
     '''
-
     def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
-        super(UploadStationDialog, self).__init__(db_connection, schemata, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
-
-
+        upload_function = db_connection.add_stations
+        super(UploadStationDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+            
+    def upload(self):
+        success = super(UploadStationDialog, self).upload()
+        if success:
+            self.upload_frame.setDisabled(True)
+            self.OK_button.setDisabled(False)  
+            self.OK_button.clicked.connect(self.close)
+            self.cancel_button.setDisabled(True) 
+    
 class SelectDialog(QtGui.QDialog):
     '''
     executable dialog for getting an item out of a combobox with the given items,
@@ -512,7 +520,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        self.log_edit.insertHtml(str(text.toLocal8Bit()) + '<br>')
+        self.log_edit.insertHtml(_fromUtf8(text) + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
             if isinstance(progress, QtCore.QVariant):
@@ -597,10 +605,10 @@ class ExecDialog(ProgressDialog):
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
 
 
-class ExecUpload(ExecDialog):
-    def __init__(self, db_connection, schema, name, shapefile,
+class ExecUploadShape(ExecDialog):
+    def __init__(self, db_connection, schema, name, shapefile, upload_function,
                  srid=None, parent=None, on_finish=None, on_success=None, auto_close=False):
-        super(ExecUpload, self).__init__(parent=parent, auto_close=auto_close)
+        super(ExecUploadShape, self).__init__(parent=parent, auto_close=auto_close)
         self.schema = schema
         self.name = name
         self.shapefile = shapefile
@@ -609,6 +617,7 @@ class ExecUpload(ExecDialog):
         self.conversion = QtCore.QProcess(self)
         self.on_finish = on_finish
         self.on_success = on_success
+        self.upload_function = upload_function
 
         self.conversion.started.connect(self.running)
         self.conversion.finished.connect(self.conversion_finished)
@@ -630,7 +639,7 @@ class ExecUpload(ExecDialog):
             self.stopped()
 
     def run(self):
-        self.db_connection.add_area(
+        self.upload_function(
             self.schema, self.name, self.shapefile,
             self.process, self.conversion, srid=self.srid,
             on_progress=self.show_status,

@@ -46,7 +46,7 @@ class DBConnection(object):
     
     def get_stations_available(self):
         sql = """
-        SELECT name, schema, can_be_deleted
+        SELECT id, name, schema, can_be_deleted
         FROM meta.haltestellen_available
         ORDER BY name
         """
@@ -121,6 +121,42 @@ class DBConnection(object):
             return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
         except:
             return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
+        
+    def drop_stations(self, id, table, schema):
+        
+        sql_check = """
+        SELECT area_name FROM meta.areas_available WHERE default_stops = {hst_id}
+        """
+        
+        check = self.fetch(sql_check.format(hst_id=id))
+        if len(check) > 0:
+            msg = '{schema}.{table} kann nicht gelöscht werden, da die Aggregationsstufen \n'.format(schema=schema, table=table)
+            for c in check:
+                msg += ' - ' + c.area_name + '\n'
+            msg += 'darauf verweisen!'
+            return False, msg
+    
+        last = self.get_last_calculated()
+        if schema == last[0].hst_schema and table == last[0].hst_name:
+            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'.format(schema=schema, table=table) +
+                    'da die letzte Verschneidung mit diesen Haltestellen erfolgte. \n\n' +
+                    'Bitte führen Sie zunächst eine Verschneidung mit \n' +
+                    'anderen Haltestellen durch, bevor Sie diese löschen.')
+        # remove row from available schemata
+        sql_remove = """
+        DELETE FROM meta.haltestellen_available
+        WHERE id = {id}
+        """
+        # drop table
+        sql_drop = """
+        Drop TABLE IF EXISTS {schema}.{table}
+        """
+        try:
+            self.execute(sql_remove.format(name=table, schema=schema))
+            self.execute(sql_drop.format(id=id))
+            return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
+        except:
+            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'    
 
     def get_projections_available(self):
         sql = """
@@ -216,7 +252,7 @@ class DBConnection(object):
         return True, ''
 
     '''
-    add an aggregation area based on a given shapefile to the database, monitor the progress
+    upload a shapefile to the database, monitor the progress
 
     @param schema - the schema the table will be created in
     @param name - the name the area (= the table) gets
@@ -224,12 +260,11 @@ class DBConnection(object):
     @param process - QtCore.QProcess, process provided to upload shape into db
     @param conversion - QtCore.QProcess, process provided to convert file
     @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
-    @param on_finish - optional, additional callback, called when run is finished
-    @param on_success - optional, additional callback, called when run was successful
+    @param on_exit - optional, additional callback, called when process is done, expects exit-code and -status as params
     @param projection - optional, srid of the projection
     '''
-    def add_area(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None):
+    def upload_shape(self, schema, name, shapefile, process, conversion_process,
+                 on_progress=None, srid=None, on_exit=None):
         psql_path = config.settings['env']['psql_path']
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
         options = '-c -g geom -I'
@@ -243,7 +278,10 @@ class DBConnection(object):
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
         shp2pgsql_cmd = '"{executable}" {options} "{input_file}" {schema}.{table}"'.format(
             executable=shp2pgsql_path, options=options, input_file=shapefile, schema=schema, table=name)
-        print shp2pgsql_cmd
+        
+        def finished(exit_code, exit_status):
+            on_exit(exit_code, exit_status)            
+            shutil.rmtree(tmp_dir)   
 
         # call callback with standard error and output
         def progress():
@@ -261,8 +299,57 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
-        def finished(exit_code, exit_status):
-            shutil.rmtree(tmp_dir)
+        def upload_to_db(exit_code, exit_status):
+            if(exit_code != 0):
+                if(self.on_progress):
+                    self.on_progress('<b>Konvertierung nicht erfolgreich </b><br>')
+                return
+            if self.on_progress:
+                self.on_progress('<b>Konvertierung erfolgreich. Starte Upload... </b><br>', 50)
+
+            db_config = config.settings['db_config']
+            # you can't pass a password to the command-line psql.exe -> set environment variable instead
+            sys_env = QtCore.QProcessEnvironment.systemEnvironment()
+            sys_env.insert("PGPASSWORD", db_config['password'])
+            process.setProcessEnvironment(sys_env)
+
+            psql_cmd = '"{executable}" -d {database} -a -h {host} -p {port} -U {user} -w -f "{input_file}"'.format(
+                executable=psql_path, database=db_config['db_name'],
+                host=db_config['host'], port=db_config['port'],
+                user=db_config['username'], input_file=tmp_file)
+                     
+            process.finished.connect(finished)
+            process.start(psql_cmd)
+
+        conversion_process.finished.connect(upload_to_db)
+
+        def read_sql_code():
+            txt = conversion_process.readAllStandardOutput()
+            with open(tmp_file, 'ab') as openfile:
+                openfile.write(txt)
+
+        conversion_process.readyReadStandardOutput.connect(read_sql_code)
+        conversion_process.start(shp2pgsql_cmd)
+    
+    '''
+    add an aggregation area based on a given shapefile to the database, monitor the progress
+
+    @param schema - the schema the table will be created in
+    @param name - the name the area (= the table) gets
+    @param shapefile - the path to the shapefile to upload
+    @param process - QtCore.QProcess, process provided to upload shape into db
+    @param conversion - QtCore.QProcess, process provided to convert file
+    @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
+    @param on_finish - optional, additional callback, called when run is finished
+    @param on_success - optional, additional callback, called when run was successful
+    @param projection - optional, srid of the projection
+    '''
+    def add_area(self, schema, name, shapefile, process, conversion_process,
+                 on_progress=None, srid=None, on_finish=None, on_success=None):    
+        
+        self.on_progress = on_progress
+
+        def on_exit(exit_code, exit_status):
             if exit_code == 0:
                 # add new area to areas_available
                 sql = """
@@ -283,37 +370,50 @@ class DBConnection(object):
             # on_success hast to be called after on_finish (this one is called on error as well)
             if exit_code == 0 and on_success:
                 on_success()
+                
+        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)
+    
+    '''
+    add stations based on a given shapefile to the database, monitor the progress
 
-        def upload_to_db(exit_code, exit_status):
-            if(exit_code != 0):
-                if(self.on_progress):
-                    self.on_progress('<b>Konvertierung nicht erfolgreich </b><br>')
-                return
-            if self.on_progress:
-                self.on_progress('<b>Konvertierung erfolgreich. Starte Upload... </b><br>', 50)
+    @param schema - the schema the table will be created in
+    @param name - the name the area (= the table) gets
+    @param shapefile - the path to the shapefile to upload
+    @param process - QtCore.QProcess, process provided to upload shape into db
+    @param conversion - QtCore.QProcess, process provided to convert file
+    @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
+    @param on_finish - optional, additional callback, called when run is finished
+    @param on_success - optional, additional callback, called when run was successful
+    @param projection - optional, srid of the projection
+    '''
+    def add_stations(self, schema, name, shapefile, process, conversion_process,
+                 on_progress=None, srid=None, on_finish=None, on_success=None):    
+        
+        self.on_progress = on_progress
 
-            db_config = config.settings['db_config']
-            # you can't pass a password to the command-line psql.exe -> set environment variable instead
-            sys_env = QtCore.QProcessEnvironment.systemEnvironment()
-            sys_env.insert("PGPASSWORD", db_config['password'])
-            process.setProcessEnvironment(sys_env)
-
-            psql_cmd = '"{executable}" -d {database} -a -h {host} -p {port} -U {user} -w -f "{input_file}"'.format(
-                executable=psql_path, database=db_config['db_name'],
-                host=db_config['host'], port=db_config['port'],
-                user=db_config['username'], input_file=tmp_file)
-            process.finished.connect(finished)
-            process.start(psql_cmd)
-
-        conversion_process.finished.connect(upload_to_db)
-
-        def read_sql_code():
-            txt = conversion_process.readAllStandardOutput()
-            with open(tmp_file, 'ab') as openfile:
-                openfile.write(txt)
-
-        conversion_process.readyReadStandardOutput.connect(read_sql_code)
-        conversion_process.start(shp2pgsql_cmd)
+        def on_exit(exit_code, exit_status):
+            if exit_code == 0:
+                # add new area to areas_available
+                sql = """
+                INSERT INTO meta.haltestellen_available (name, schema, can_be_deleted)
+                VALUES ('{name}','{schema}', 'TRUE');
+                """
+                sql_alter = """
+                ALTER TABLE {schema}.{table}
+                OWNER TO verkehr;
+                """
+                self.execute(sql.format(name=name, schema=schema))
+                self.execute(sql_alter.format(schema=schema, table=name))
+                if self.on_progress:
+                    self.on_progress('<b>Upload erfolgreich</b><br>')
+                self.on_progress = None
+            if on_finish:
+                on_finish()
+            # on_success hast to be called after on_finish (this one is called on error as well)
+            if exit_code == 0 and on_success:
+                on_success()
+                
+        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)         
 
     def new_intersection(self, schema, table):
         # set functions to scope of following class
