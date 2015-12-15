@@ -58,6 +58,51 @@ QProgressBar::chunk {
 }
 """
 
+       
+'''
+check the check-status of the item inside the tree view
+and accordingly update the check-status of it's parent / siblings
+'''
+def check_status(item):
+    parent = item.parent()
+    # given item is sub-category -> check/uncheck/partial check of parent of given item, depending on number of checked children
+    if(parent):
+        child_count = parent.childCount()
+        checked_count = 0
+        for i in range(child_count):
+            if (parent.child(i).checkState(0) == QtCore.Qt.Checked):
+                checked_count += 1
+        if checked_count == 0:
+            parent.setCheckState(0, QtCore.Qt.Unchecked)
+        elif checked_count == child_count:
+            parent.setCheckState(0, QtCore.Qt.Checked)
+        else:
+            parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
+    # given item is category -> check or uncheck all children
+    elif item.checkState(0) != QtCore.Qt.PartiallyChecked:
+        state = item.checkState(0)
+        child_count = item.childCount()
+        for i in range(child_count):
+            item.child(i).setCheckState(0, state)
+        
+'''
+returns a list of all checked sub-categories in the tree view
+'''
+def get_selected(tree, get_all=False):
+    root = tree.invisibleRootItem()
+    cat_count = root.childCount()
+    checked = []
+    # iterate categories
+    for i in range(cat_count):
+        cat_item = root.child(i)
+        col_count = cat_item.childCount()
+        # get checked sub-categories
+        for j in range(col_count):
+            col_item = cat_item.child(j)
+            if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
+                checked.append(str(col_item.text(0)))
+    return checked    
+
 def set_file(parent, line_edit, extension, do_split=False):
     '''
     open a file browser to put a path to a file into the given line edit
@@ -681,16 +726,51 @@ class ExecShapeDownload(ExecDialog):
         
         
 class DownloadDataDialog(QtGui.QDialog, Ui_DownloadDataDialog):
-    def __init__(self, parent=None, on_change=None):
+    def __init__(self, db_conn, parent=None):
         super(DownloadDataDialog, self).__init__(parent)
         self.setupUi(self)
         self.download_button.clicked.connect(self.download)
         self.cancel_button.clicked.connect(self.close)
+        self.db_conn = db_conn
+        
+        header = QtGui.QTreeWidgetItem(["Kategorie","Beschreibung"])
+        self.tables_to_download_tree.setHeaderItem(header)    
+        self.tables_to_download_tree.itemClicked.connect(check_status)        
 
         self.select_dir_button.clicked.connect(
             lambda: set_directory(self, self.dir_edit))
+        
+#        self.tables_to_download_tree.clear()
+        tables_to_download = db_conn.get_tables_to_download()
+        prev_cat = None
+        for id, name, schema, tablename, category in tables_to_download:
+            if prev_cat != category:                
+                cat_item = QtGui.QTreeWidgetItem(self.tables_to_download_tree, [_fromUtf8(category)])
+                cat_item.setCheckState(0,QtCore.Qt.Unchecked)
+                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                prev_cat = category
+            
+            col_item = QtGui.QTreeWidgetItem(cat_item, [_fromUtf8(tablename)])
+            col_item.setCheckState(0,QtCore.Qt.Unchecked)
+            col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            col_item.setText(1, _fromUtf8(name))
+            
+        self.tables_to_download_tree.resizeColumnToContents(0)        
 
         self.show()    
-        
+     
     def download(self):
-        pass
+        directory = self.dir_edit.text()
+        if not directory:
+            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                       _fromUtf8('Sie müssen ein Zielverzeichnis wählen!'))
+            msgBox.exec_()
+            return            
+        
+        selected_tables = get_selected(self.tables_to_download_tree)
+        
+        for table in selected_tables:
+            table = str(table)
+            filename = os.path.join(str(directory), table + '.csv')
+            table = 'strukturdaten.' + table
+            self.db_conn.db_table_to_csv_file([], table, filename)

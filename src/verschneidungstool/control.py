@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog, DownloadDataDialog
+from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog, DownloadDataDialog, check_status, get_selected
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
 import os
@@ -24,7 +24,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         header = QtGui.QTreeWidgetItem(["Kategorie","Beschreibung"])
         self.structure_tree.setHeaderItem(header)
-        self.structure_tree.itemClicked.connect(self.check_status)
+        self.structure_tree.itemClicked.connect(check_status)
         self.add_layer_button.clicked.connect(self.upload_area_shape)
         self.add_stations_button.clicked.connect(self.upload_station_shape)
         self.delete_layer_button.clicked.connect(self.remove_area)
@@ -294,50 +294,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                 col_item.setCheckState(0,QtCore.Qt.Unchecked)
                 col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
-        
-    '''
-    check the check-status of the item inside the tree view
-    and accordingly update the check-status of it's parent / siblings
-    '''
-    def check_status(self, item):
-        parent = item.parent()
-        # given item is sub-category -> check/uncheck/partial check of parent of given item, depending on number of checked children
-        if(parent):
-            child_count = parent.childCount()
-            checked_count = 0
-            for i in range(child_count):
-                if (parent.child(i).checkState(0) == QtCore.Qt.Checked):
-                    checked_count += 1
-            if checked_count == 0:
-                parent.setCheckState(0, QtCore.Qt.Unchecked)
-            elif checked_count == child_count:
-                parent.setCheckState(0, QtCore.Qt.Checked)
-            else:
-                parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
-        # given item is category -> check or uncheck all children
-        elif item.checkState(0) != QtCore.Qt.PartiallyChecked:
-            state = item.checkState(0)
-            child_count = item.childCount()
-            for i in range(child_count):
-                item.child(i).setCheckState(0, state)
-
-    '''
-    returns a list of all checked sub-categories in the tree view
-    '''
-    def get_selected(self, get_all=False):
-        root = self.structure_tree.invisibleRootItem()
-        cat_count = root.childCount()
-        checked = []
-        # iterate categories
-        for i in range(cat_count):
-            cat_item = root.child(i)
-            col_count = cat_item.childCount()
-            # get checked sub-categories
-            for j in range(col_count):
-                col_item = cat_item.child(j)
-                if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
-                    checked.append(str(col_item.text(0)))
-        return checked
 
     def edit_settings(self):
         diag = SettingsDialog(self)  #, on_change=self.dbreset)
@@ -402,7 +358,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             get_all = True
         else:
             get_all = False
-        selected_columns = self.get_selected(get_all)
+        selected_columns = get_selected(self.structure_tree, get_all)
         last_calc = self.db_conn.get_last_calculated()
 
         if not last_calc[0].finished:

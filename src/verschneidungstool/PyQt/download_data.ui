@@ -34,14 +34,19 @@
    <item row="0" column="1" colspan="5">
     <widget class="QTreeWidget" name="tables_to_download_tree">
      <property name="columnCount">
-      <number>1</number>
+      <number>2</number>
      </property>
      <attribute name="headerVisible">
-      <bool>false</bool>
+      <bool>true</bool>
      </attribute>
      <column>
       <property name="text">
        <string notr="true">1</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string notr="true">2</string>
       </property>
      </column>
     </widget>

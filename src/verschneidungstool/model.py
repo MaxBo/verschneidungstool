@@ -62,9 +62,9 @@ class DBConnection(object):
     
     def get_tables_to_download(self):
         sql = """
-        SELECT *
+        SELECT id, name, schema, tablename, category
         FROM meta.tables_to_download
-        ORDER BY name
+        ORDER BY category
         """
         return self.fetch(sql)    
 
@@ -534,20 +534,26 @@ class DBConnection(object):
         FROM meta.last_area_calculated
         """
         return self.fetch(sql)
-
-    def results_to_csv(self, columns, filename):
+    
+    # empty column array selects all columns (*)
+    def db_table_to_csv_file(self, columns, table, filename):
         sql = '''
-        COPY (SELECT vz_id, zone_name {columns}
-        FROM strukturdaten.results) TO STDOUT WITH CSV HEADER
+        COPY (SELECT {columns}
+        FROM {table}) TO STDOUT WITH CSV HEADER
         '''
         if columns and len(columns) > 0:
             columns = ['"{}"'.format(c) for c in columns]
             columns = ',' + ','.join(columns)
         else:
-            columns = ''
+            columns = '*'
 
         with open(filename, 'w') as fileobject:
-            self.copy_expert(sql.format(columns=columns), fileobject)
+            self.copy_expert(sql.format(columns=columns, table=table), fileobject)
+
+    def results_to_csv(self, columns, filename):            
+        columns = [vz_id, zone_name] + columns
+        table = 'strukturdaten.results'
+        self.db_table_to_csv_file(columns, table, filename)
 
     def results_to_excel(self, columns, filename):
         tmp_dir = tempfile.mkdtemp()
