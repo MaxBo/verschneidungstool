@@ -152,8 +152,8 @@ class DBConnection(object):
         Drop TABLE IF EXISTS {schema}.{table}
         """
         try:
-            self.execute(sql_remove.format(name=table, schema=schema))
-            self.execute(sql_drop.format(id=id))
+            self.execute(sql_remove.format(id=id))
+            self.execute(sql_drop.format(table=table, schema=schema))
             return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
         except:
             return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'    
@@ -512,6 +512,13 @@ class DBConnection(object):
         SET jahr='{year}'
         """
         self.execute(sql.format(year=year))
+        
+    def set_current_stations(self, table, schema):
+        sql = """
+        UPDATE haltestellen.hst_selected
+        SET name='{name}', schema='{schema}'
+        """
+        self.execute(sql.format(name=table, schema=schema))    
 
     def get_last_calculated(self):
         sql = """

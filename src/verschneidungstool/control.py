@@ -28,7 +28,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.add_layer_button.clicked.connect(self.upload_area_shape)
         self.add_stations_button.clicked.connect(self.upload_station_shape)
         self.delete_layer_button.clicked.connect(self.remove_area)
-        self.delete_stations_button.clicked.connect(self.remove_station)
+        self.delete_stations_button.clicked.connect(self.remove_stations)
         self.intersect_button.clicked.connect(self.intersect)
         # workaround: QT-Designer always sets this button to disabled, ignoring settings
         self.intersect_button.setEnabled(True)
@@ -247,7 +247,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
     '''
     initiate removal of the selected station from the database
     '''
-    def remove_station(self):
+    def remove_stations(self):
         selected_data = self.stations_combo.itemData(self.stations_combo.currentIndex()).toList()
         can_be_deleted = selected_data[2].toBool()
         # do nothing, if area can't be deleted (you shouldn't get here anyway, because button is disabled)
@@ -360,6 +360,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             schema = auto_args['schema']
             table = auto_args['table_name']
             auto_close = True
+            
+        station_idx = self.stations_combo.currentIndex()
+        station_table = self.stations_combo.currentText()
+        station_schema = self.stations_combo.itemData(station_idx).toList()[1].toString()            
+        # set selected stations in db
+        self.db_conn.set_current_stations(station_table, station_schema)        
 
         intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=auto_close)
         intersectDiag.exec_()
@@ -377,7 +383,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
                                   reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
         
     def upload_station_shape(self, auto_args = None):
-        schemata = [r.name for r in self.schemata]
+        schemata = ['haltestellen'] # TODO: any other available schemata for stations?
         reserved_names = [self.stations_combo.itemText(i) for i in range(self.stations_combo.count())]
         
         #if successfully uploaded, select last area = new area (important: on_finish has to be executed first!)
@@ -415,6 +421,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             schema = self.layer_combo.itemData(idx).toList()[1].toString()
             table = self.layer_combo.itemData(idx).toList()[2].toString()
             year = str(self.year_combo.currentText())
+            station_idx = self.stations_combo.currentIndex()
+            station_table = self.stations_combo.currentText()
+            station_schema = self.stations_combo.itemData(station_idx).toList()[1].toString()
 
         else:
             selected_area = table = auto_args['table_name']
@@ -431,6 +440,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         # set year (referenced by db-view on results)
         self.db_conn.set_current_year(year)
+
+        # set selected stations in db
+        self.db_conn.set_current_stations(station_table, station_schema)
 
         csv = shp = xls = False
         

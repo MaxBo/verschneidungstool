@@ -444,6 +444,7 @@ class UploadStationDialog(UploadShapeDialog):
     def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
         upload_function = db_connection.add_stations
         super(UploadStationDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        self.name_edit.setDisabled(True)
             
     def upload(self):
         success = super(UploadStationDialog, self).upload()
@@ -521,7 +522,11 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        self.log_edit.insertHtml(_fromUtf8(text) + '<br>')
+        if hasattr(text, 'toLocal8Bit'):
+            text = str(text.toLocal8Bit())
+        else:
+            text = _fromUtf8(text)
+        self.log_edit.insertHtml(text + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
             if isinstance(progress, QtCore.QVariant):
