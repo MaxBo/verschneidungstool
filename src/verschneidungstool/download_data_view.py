@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'download_data.ui'
 #
-# Created: Wed Dec 16 09:49:13 2015
+# Created: Wed Dec 16 11:33:04 2015
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!

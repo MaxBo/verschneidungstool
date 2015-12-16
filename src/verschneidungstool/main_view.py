@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main.ui'
 #
-# Created: Wed Dec 16 09:49:12 2015
+# Created: Wed Dec 16 11:33:04 2015
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -244,7 +244,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "Verschneidungstool", None))
         self.dbconnect_button.setText(_translate("MainWindow", "mit Datenbank verbinden", None))
-        self.download_frame.setTitle(_translate("MainWindow", "Ergebnisse herunterladen", None))
+        self.download_frame.setTitle(_translate("MainWindow", "Ergebnisse", None))
         self.shape_radio_button.setText(_translate("MainWindow", "als Shapefile", None))
         self.csv_radio_button.setText(_translate("MainWindow", "als csv-Datei", None))
         self.excel_radio_button.setText(_translate("MainWindow", "als Exceltabelle", None))
@@ -259,7 +259,7 @@ class Ui_MainWindow(object):
         self.add_layer_button.setText(_translate("MainWindow", "Neuer Layer", None))
         self.intersect_frame.setTitle(_translate("MainWindow", "Verschneiden", None))
         self.intersect_button.setText(_translate("MainWindow", "Verschneidung berechnen", None))
-        self.download_tables_frame.setTitle(_translate("MainWindow", "einzelne Strukturdaten herunterladen", None))
+        self.download_tables_frame.setTitle(_translate("MainWindow", "einzelne Strukturdaten", None))
         self.download_tables_button.setText(_translate("MainWindow", "Herunterladen", None))
         self.menuDatei.setTitle(_translate("MainWindow", "Datei", None))
         self.actionEinstellungen.setText(_translate("MainWindow", "Einstellungen", None))
