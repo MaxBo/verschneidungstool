@@ -2,7 +2,8 @@
 
 # Form implementation generated from reading ui file 'upload.ui'
 #
-# Created by: PyQt4 UI code generator 4.11.4
+# Created: Wed Dec 16 09:49:12 2015
+#      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -39,6 +40,7 @@ class Ui_Upload(object):
         self.layoutWidget_2.setGeometry(QtCore.QRect(0, 400, 541, 41))
         self.layoutWidget_2.setObjectName(_fromUtf8("layoutWidget_2"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(self.layoutWidget_2)
+        self.horizontalLayout_2.setMargin(0)
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
@@ -55,6 +57,7 @@ class Ui_Upload(object):
         self.gridLayoutWidget.setGeometry(QtCore.QRect(10, 20, 531, 241))
         self.gridLayoutWidget.setObjectName(_fromUtf8("gridLayoutWidget"))
         self.upload_layout = QtGui.QGridLayout(self.gridLayoutWidget)
+        self.upload_layout.setMargin(0)
         self.upload_layout.setObjectName(_fromUtf8("upload_layout"))
         self.gridLayout_4 = QtGui.QGridLayout()
         self.gridLayout_4.setObjectName(_fromUtf8("gridLayout_4"))
@@ -114,6 +117,7 @@ class Ui_Upload(object):
         self.gridLayoutWidget_2.setGeometry(QtCore.QRect(10, 20, 531, 93))
         self.gridLayoutWidget_2.setObjectName(_fromUtf8("gridLayoutWidget_2"))
         self.select_ids_layout = QtGui.QGridLayout(self.gridLayoutWidget_2)
+        self.select_ids_layout.setMargin(0)
         self.select_ids_layout.setObjectName(_fromUtf8("select_ids_layout"))
         self.pkey_combo = QtGui.QComboBox(self.gridLayoutWidget_2)
         self.pkey_combo.setObjectName(_fromUtf8("pkey_combo"))
