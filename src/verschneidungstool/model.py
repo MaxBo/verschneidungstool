@@ -38,7 +38,7 @@ class DBConnection(object):
 
     def get_areas_available(self):
         sql = """
-        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops
+        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops, results_schema, results_table, check_last_calculation
         FROM meta.areas_available
         ORDER BY id
         """
@@ -550,16 +550,14 @@ class DBConnection(object):
         with open(filename, 'w') as fileobject:
             self.copy_expert(sql.format(columns=columns, table=table, schema=schema), fileobject)
 
-    def results_to_csv(self, columns, filename):
+    def results_to_csv(self, schema, table, columns, filename):
         columns = ['vz_id', 'zone_name'] + columns
-        table = 'results'
-        schema =  'strukturdaten'
         self.db_table_to_csv_file(schema, table, filename, columns=columns)
 
-    def results_to_excel(self, columns, filename):
+    def results_to_excel(self, schema, table, columns, filename):
         tmp_dir = tempfile.mkdtemp()
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
-        self.results_to_csv(columns, tmp_filename)
+        self.results_to_csv(schema, table, columns, tmp_filename)
 
         with open(tmp_filename, 'rb') as f:
             csvreader = csv.reader((f), delimiter=",")
@@ -581,7 +579,7 @@ class DBConnection(object):
         db_config = config.settings['db_config']
 
         if columns and len(columns) > 0:
-            columns = ['"{}"'.format(c) for c in columns]
+            columns = ['"\""{}"\""'.format(c) for c in columns]
             columns = ','.join(columns)
         else:
             columns = '*'
@@ -614,10 +612,10 @@ class DBConnection(object):
         process.start(pgsql2shp_cmd)
 
 
-    def results_to_shape(self, columns, process, filename,
+    def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
         columns = ['vz_id', 'zone_name', 'geom'] + columns
-        self.db_table_to_shape_file('strukturdaten', 'results', process, filename,
+        self.db_table_to_shape_file(schema, table, process, filename,
                                    columns=columns, on_progress=on_progress,
                                    srid=srid, on_finish=on_finish)
 

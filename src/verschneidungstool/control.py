@@ -129,8 +129,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.layer_combo.clear()
         if not self.refresh_attr(['areas']):
             return False
-        for id, area_name, schema, table_name, can_be_deleted, default_stops in self.areas:
-            self.layer_combo.addItem(area_name, [id, schema, table_name, can_be_deleted, default_stops])
+        for id, area_name, schema, table_name, can_be_deleted, default_stops, results_schema, results_table, check_last_calculation in self.areas:
+            self.layer_combo.addItem(area_name, [id, schema, table_name, can_be_deleted, default_stops, results_schema, results_table, check_last_calculation])
 
         self.area_changed()
         return True
@@ -197,10 +197,17 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         selected_data = self.layer_combo.itemData(idx).toList()
         can_be_deleted = selected_data[3].toBool()
         hst_id = selected_data[4].toInt()[0]
+        check_last_calculation = selected_data[7].toBool()
+
         if can_be_deleted:
             self.delete_layer_button.setEnabled(True)
         else:
             self.delete_layer_button.setEnabled(False)
+
+        if not check_last_calculation:
+            self.intersect_frame.setEnabled(False)
+        else:
+            self.intersect_frame.setEnabled(True)
 
         # select default stop
         for i in reversed(range(self.stations_combo.count())):
@@ -361,26 +368,31 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         selected_columns = get_selected(self.structure_tree, get_all)
         last_calc = self.db_conn.get_last_calculated()
 
-        if not last_calc[0].finished:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+        selected_area = self.layer_combo.currentText()
+        idx = self.layer_combo.currentIndex()
+        selected_data = self.layer_combo.itemData(idx).toList()
+        check_last_calculation = selected_data[7].toBool()
+
+        if check_last_calculation and not last_calc[0].finished:
+            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                        _fromUtf8('Derzeit findet eine Berechnung statt!\n' +
                                                  'Bitte warten Sie, bis diese abgeschlossen ist.'))
-            msgBox.exec_()
+            msg_box.exec_()
             return
 
         if not auto_args:
             if len(selected_columns) == 0:
-                msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                            _fromUtf8('Sie haben keine Kategorie ausgewählt!\n' +
                                                      'Bitte wählen sie eine oder mehrere aus,\n' +
                                                      'um zugehörige Daten zu erhalten.'))
-                msgBox.exec_()
+                msg_box.exec_()
                 return
 
-            selected_area = self.layer_combo.currentText()
-            idx = self.layer_combo.currentIndex()
-            schema = self.layer_combo.itemData(idx).toList()[1].toString()
-            table = self.layer_combo.itemData(idx).toList()[2].toString()
+            schema = selected_data[1].toString()
+            table = selected_data[2].toString()
+            results_schema = selected_data[5].toString()
+            results_table = selected_data[6].toString()
             year = str(self.year_combo.currentText())
             station_idx = self.stations_combo.currentIndex()
             station_table = self.stations_combo.currentText()
@@ -391,12 +403,24 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             schema = auto_args['schema']
             year = auto_args['year']
 
-        if len(last_calc) == 0 or last_calc[0].area_name != selected_area or last_calc[0].schema != schema:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+            # ToDo: pass with arguments?
+            results_table = 'results'
+            results_schema =  'strukturdaten'
+
+        if len(last_calc) == 0:
+            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                       _fromUtf8('Es liegen keine verschnittenen Daten vor.\n\n' +
+                                                 'Sie müssen neu verschneiden!'))
+            msg_box.exec_()
+            return
+
+
+        if check_last_calculation and (last_calc[0].area_name != selected_area or last_calc[0].schema != schema):
+            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                        _fromUtf8('Es liegen keine verschnittenen Daten für die gewählte Aggregationsstufe\n' +
                                                  '"{area}" ({schema}.{table}) vor.\n\n'.format(area=selected_area, schema=schema, table=table) +
                                                  'Sie müssen neu verschneiden!'))
-            msgBox.exec_()
+            msg_box.exec_()
             return
 
         # set year (referenced by db-view on results)
@@ -439,16 +463,29 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             elif extension == '.shp':
                 shp = True
             else:
-                msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                            _fromUtf8("Angegebene Dateiendung wird nicht unterstützt!"))
-                msgBox.exec_()
+                msg_box.exec_()
                 return
 
+        if csv or xls:
+
+            msg_box = QtGui.QMessageBox(parent=self)
+            msg_box.setWindowTitle("Lade herunter, bitte warten ...")
+            msg_box.setText(_fromUtf8("Daten werden heruntergeladen, Bitte warten ..."))
+            msg_box.setWindowModality(QtCore.Qt.NonModal)
+            msg_box.show()
+
         if csv:
-            self.db_conn.results_to_csv(selected_columns, filename)
+            self.db_conn.results_to_csv(results_schema, results_table, selected_columns, filename)
         elif xls:
-            self.db_conn.results_to_excel(selected_columns, filename)
+            self.db_conn.results_to_excel(results_schema, results_table, selected_columns, filename)
         elif shp:
             diag = ExecDownloadResultsShape(
-            self.db_conn, selected_columns, filename, parent=self, auto_close=auto_close)
+            self.db_conn, results_schema, results_table, selected_columns,
+            filename, parent=self, auto_close=auto_close)
             diag.exec_()
+
+
+        if csv or xls:
+            msg_box.close()

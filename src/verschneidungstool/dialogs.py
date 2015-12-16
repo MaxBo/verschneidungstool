@@ -708,11 +708,13 @@ class ExecUploadShape(ExecDialog):
 
 
 class ExecDownloadResultsShape(ExecDialog):
-    def __init__(self, db_connection, columns, filename, parent=None, auto_close=False):
+    def __init__(self, db_connection, schema, table, columns, filename, parent=None, auto_close=False):
         super(ExecDownloadResultsShape, self).__init__(parent=parent, auto_close=auto_close)
         self.filename = filename
         self.db_connection = db_connection
         self.columns = columns
+        self.table = table
+        self.schema = schema
 
         # start process directly (simulate click on start)
         self.startButton.clicked.emit(True)
@@ -720,7 +722,7 @@ class ExecDownloadResultsShape(ExecDialog):
         self.startButton.hide()
 
     def run(self):
-        self.db_connection.results_to_shape(
+        self.db_connection.results_to_shape( self.schema, self.table,
             self.columns, self.process, self.filename,
             on_progress=self.show_status)
 
