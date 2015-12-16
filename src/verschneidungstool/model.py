@@ -43,14 +43,14 @@ class DBConnection(object):
         ORDER BY id
         """
         return self.fetch(sql)
-    
+
     def get_stations_available(self):
         sql = """
         SELECT id, name, schema, can_be_deleted
         FROM meta.haltestellen_available
         ORDER BY id
         """
-        return self.fetch(sql)    
+        return self.fetch(sql)
 
     def get_years_available(self):
         sql = """
@@ -59,14 +59,14 @@ class DBConnection(object):
         ORDER BY year
         """
         return self.fetch(sql)
-    
+
     def get_tables_to_download(self):
         sql = """
         SELECT id, name, schema, tablename, category
         FROM meta.tables_to_download
         ORDER BY category
         """
-        return self.fetch(sql)    
+        return self.fetch(sql)
 
     def get_structure_available(self, year):
         if not self.colums_available:
@@ -129,13 +129,13 @@ class DBConnection(object):
             return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
         except:
             return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
-        
+
     def drop_stations(self, id, table, schema):
-        
+
         sql_check = """
         SELECT area_name FROM meta.areas_available WHERE default_stops = {hst_id}
         """
-        
+
         check = self.fetch(sql_check.format(hst_id=id))
         if len(check) > 0:
             msg = '{schema}.{table} kann nicht gelöscht werden, da die Aggregationsstufen \n'.format(schema=schema, table=table)
@@ -143,7 +143,7 @@ class DBConnection(object):
                 msg += ' - ' + c.area_name + '\n'
             msg += 'darauf verweisen!'
             return False, msg
-    
+
         last = self.get_last_calculated()
         if schema == last[0].hst_schema and table == last[0].hst_name:
             return False, ('{schema}.{table} kann nicht gelöscht werden,\n'.format(schema=schema, table=table) +
@@ -164,7 +164,7 @@ class DBConnection(object):
             self.execute(sql_drop.format(table=table, schema=schema))
             return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
         except:
-            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'    
+            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
 
     def get_projections_available(self):
         sql = """
@@ -288,10 +288,10 @@ class DBConnection(object):
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
         shp2pgsql_cmd = '"{executable}" {options} "{input_file}" {schema}.{table}"'.format(
             executable=shp2pgsql_path, options=options, input_file=shapefile, schema=schema, table=name)
-        
+
         def finished(exit_code, exit_status):
-            on_exit(exit_code, exit_status)            
-            shutil.rmtree(tmp_dir)   
+            on_exit(exit_code, exit_status)
+            shutil.rmtree(tmp_dir)
 
         # call callback with standard error and output
         def progress():
@@ -327,7 +327,7 @@ class DBConnection(object):
                 executable=psql_path, database=db_config['db_name'],
                 host=db_config['host'], port=db_config['port'],
                 user=db_config['username'], input_file=tmp_file)
-                     
+
             process.finished.connect(finished)
             process.start(psql_cmd)
 
@@ -340,7 +340,7 @@ class DBConnection(object):
 
         conversion_process.readyReadStandardOutput.connect(read_sql_code)
         conversion_process.start(shp2pgsql_cmd)
-    
+
     '''
     add an aggregation area based on a given shapefile to the database, monitor the progress
 
@@ -355,8 +355,8 @@ class DBConnection(object):
     @param projection - optional, srid of the projection
     '''
     def add_area(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None):    
-        
+                 on_progress=None, srid=None, on_finish=None, on_success=None):
+
         self.on_progress = on_progress
 
         def on_exit(exit_code, exit_status):
@@ -380,9 +380,9 @@ class DBConnection(object):
             # on_success hast to be called after on_finish (this one is called on error as well)
             if exit_code == 0 and on_success:
                 on_success()
-                
+
         self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)
-    
+
     '''
     add stations based on a given shapefile to the database, monitor the progress
 
@@ -397,8 +397,8 @@ class DBConnection(object):
     @param projection - optional, srid of the projection
     '''
     def add_stations(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None):    
-        
+                 on_progress=None, srid=None, on_finish=None, on_success=None):
+
         self.on_progress = on_progress
 
         def on_exit(exit_code, exit_status):
@@ -422,8 +422,8 @@ class DBConnection(object):
             # on_success hast to be called after on_finish (this one is called on error as well)
             if exit_code == 0 and on_success:
                 on_success()
-                
-        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)         
+
+        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)
 
     def new_intersection(self, schema, table):
         # set functions to scope of following class
@@ -520,13 +520,13 @@ class DBConnection(object):
         SET jahr='{year}'
         """
         self.execute(sql.format(year=year))
-        
+
     def set_current_stations(self, table, schema):
         sql = """
         UPDATE haltestellen.hst_selected
         SET name='{name}', schema='{schema}'
         """
-        self.execute(sql.format(name=table, schema=schema))    
+        self.execute(sql.format(name=table, schema=schema))
 
     def get_last_calculated(self):
         sql = """
@@ -534,26 +534,27 @@ class DBConnection(object):
         FROM meta.last_area_calculated
         """
         return self.fetch(sql)
-    
+
     # empty column array selects all columns (*)
-    def db_table_to_csv_file(self, columns, table, filename):
+    def db_table_to_csv_file(self, schema, table, filename, columns=None):
         sql = '''
         COPY (SELECT {columns}
-        FROM {table}) TO STDOUT WITH CSV HEADER
+        FROM {schema}.{table}) TO STDOUT WITH CSV HEADER
         '''
         if columns and len(columns) > 0:
             columns = ['"{}"'.format(c) for c in columns]
-            columns = ',' + ','.join(columns)
+            columns = ','.join(columns)
         else:
             columns = '*'
 
         with open(filename, 'w') as fileobject:
-            self.copy_expert(sql.format(columns=columns, table=table), fileobject)
+            self.copy_expert(sql.format(columns=columns, table=table, schema=schema), fileobject)
 
-    def results_to_csv(self, columns, filename):            
-        columns = [vz_id, zone_name] + columns
-        table = 'strukturdaten.results'
-        self.db_table_to_csv_file(columns, table, filename)
+    def results_to_csv(self, columns, filename):
+        columns = ['vz_id', 'zone_name'] + columns
+        table = 'results'
+        schema =  'strukturdaten'
+        self.db_table_to_csv_file(schema, table, filename, columns=columns)
 
     def results_to_excel(self, columns, filename):
         tmp_dir = tempfile.mkdtemp()
@@ -573,21 +574,19 @@ class DBConnection(object):
                     sheet.write(r, c, val)
             wbk.save(filename)
 
-    def results_to_shape(self, columns, process, filename,
-                         on_progress=None, srid=None, on_finish=None):
+    def db_table_to_shape_file(self, schema, table, process, filename, columns=None,
+                               on_progress=None, srid=None, on_finish=None):
         psql_path = config.settings['env']['psql_path']
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
 
         if columns and len(columns) > 0:
-            # single quote " needs to be escaped with double quote "" (-> triple quote),
-            # because the composed select-query has to be enclosed with double quote "" in the pgsql2shp_cmd as well
-            columns = ['"""{}"""'.format(c) for c in columns]
-            columns = ',' + ','.join(columns)
+            columns = ['"{}"'.format(c) for c in columns]
+            columns = ','.join(columns)
         else:
-            columns = ''
+            columns = '*'
 
-        sql = 'SELECT vz_id, zone_name, geom {columns} FROM strukturdaten.results'
+        sql = 'SELECT {columns} FROM {schema}.{table}'
 
         pgsql2shp_cmd = '"{executable}" -f "{filename}" -h {host} -p {port} -u {user} -P {password} {database} "{sql}"'.format(
             executable=pgsql2shp_path,
@@ -597,7 +596,7 @@ class DBConnection(object):
             port=db_config['port'],
             user=db_config['username'],
             password=db_config['password'],
-            sql=sql.format(columns=columns)
+            sql=sql.format(columns=columns, schema=schema, table=table)
         )
 
         # call callback with standard error and output
@@ -611,7 +610,16 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
+        on_progress('Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
         process.start(pgsql2shp_cmd)
+
+
+    def results_to_shape(self, columns, process, filename,
+                         on_progress=None, srid=None, on_finish=None):
+        columns = ['vz_id', 'zone_name', 'geom'] + columns
+        self.db_table_to_shape_file('strukturdaten', 'results', process, filename,
+                                   columns=columns, on_progress=on_progress,
+                                   srid=srid, on_finish=on_finish)
 
 
 '''

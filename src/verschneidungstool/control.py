@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecShapeDownload, IntersectionDialog, DownloadDataDialog, check_status, get_selected
+from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecDownloadResultsShape, IntersectionDialog, DownloadTablesDialog, check_status, get_selected
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
 import os
@@ -134,7 +134,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         self.area_changed()
         return True
-    
+
     def render_stations(self):
         self.stations_combo.clear()
         if not self.refresh_attr(['stations']):
@@ -143,7 +143,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.stations_combo.addItem(name, [id, schema, can_be_deleted])
 
         self.station_changed()
-        return True    
+        return True
 
     def render_years(self):
         self.year_combo.clear()
@@ -201,13 +201,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.delete_layer_button.setEnabled(True)
         else:
             self.delete_layer_button.setEnabled(False)
-            
+
         # select default stop
         for i in reversed(range(self.stations_combo.count())):
             if self.stations_combo.itemData(i).toList()[0].toInt()[0] == hst_id:
                 break
         self.stations_combo.setCurrentIndex(i)
-            
+
     '''
     enable/disable delete button depending on whether area can be deleted or not
     '''
@@ -220,7 +220,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         if can_be_deleted:
             self.delete_stations_button.setEnabled(True)
         else:
-            self.delete_stations_button.setEnabled(False)            
+            self.delete_stations_button.setEnabled(False)
 
     '''
     initiate removal of the selected area (aggregation layer) from the database
@@ -247,7 +247,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
 
         self.render_areas()
-        
+
     '''
     initiate removal of the selected station from the database
     '''
@@ -257,7 +257,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # do nothing, if area can't be deleted (you shouldn't get here anyway, because button is disabled)
         if not can_be_deleted:
             return
-        
+
         schema = selected_data[1].toString()
         id = selected_data[0].toString()
         table_name = self.stations_combo.currentText()
@@ -310,7 +310,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
             return
 
-        if not auto_args:            
+        if not auto_args:
             item = self.layer_combo.itemData(self.layer_combo.currentIndex()).toList()
             schema = str(item[1].toString())
             table = str(item[2].toString())
@@ -318,12 +318,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             schema = auto_args['schema']
             table = auto_args['table_name']
             auto_close = True
-            
+
         station_idx = self.stations_combo.currentIndex()
         station_table = self.stations_combo.currentText()
-        station_schema = self.stations_combo.itemData(station_idx).toList()[1].toString()            
+        station_schema = self.stations_combo.itemData(station_idx).toList()[1].toString()
         # set selected stations in db
-        self.db_conn.set_current_stations(station_table, station_schema)        
+        self.db_conn.set_current_stations(station_table, station_schema)
 
         intersectDiag = IntersectionDialog(self.db_conn, schema, table, auto_close=auto_close)
         intersectDiag.exec_()
@@ -339,20 +339,20 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         upDiag = UploadAreaDialog(self.db_conn, schemata, parent=self, on_finish=self.render_areas,
                                   reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
-        
+
     def upload_station_shape(self, auto_args = None):
         schemata = ['haltestellen'] # TODO: any other available schemata for stations?
         reserved_names = [self.stations_combo.itemText(i) for i in range(self.stations_combo.count())]
-        
+
         #if successfully uploaded, select last area = new area (important: on_finish has to be executed first!)
         def on_success():
             self.stations_combo.setCurrentIndex(self.stations_combo.count() - 1)
-                    
-        upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_success=on_success, on_finish=self.render_stations, reserved_names=reserved_names, auto_args=auto_args)    
+
+        upDiag = UploadStationDialog(self.db_conn, schemata, parent=self, on_success=on_success, on_finish=self.render_stations, reserved_names=reserved_names, auto_args=auto_args)
 
     def download_tables(self):
-        downloadDialog = DownloadDataDialog(self.db_conn, parent=self)
-    
+        downloadDialog = DownloadTablesDialog(self.db_conn, parent=self)
+
     def download_results(self, auto_args):
         if auto_args:
             get_all = True
@@ -406,7 +406,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.db_conn.set_current_stations(station_table, station_schema)
 
         csv = shp = xls = False
-        
+
         auto_close = False
 
         if not auto_args:
@@ -449,5 +449,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         elif xls:
             self.db_conn.results_to_excel(selected_columns, filename)
         elif shp:
-            diag = ExecShapeDownload(
+            diag = ExecDownloadResultsShape(
             self.db_conn, selected_columns, filename, parent=self, auto_close=auto_close)
+            diag.exec_()

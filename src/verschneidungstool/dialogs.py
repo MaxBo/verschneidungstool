@@ -58,7 +58,7 @@ QProgressBar::chunk {
 }
 """
 
-       
+
 '''
 check the check-status of the item inside the tree view
 and accordingly update the check-status of it's parent / siblings
@@ -84,7 +84,7 @@ def check_status(item):
         child_count = item.childCount()
         for i in range(child_count):
             item.child(i).setCheckState(0, state)
-        
+
 '''
 returns a list of all checked sub-categories in the tree view
 '''
@@ -101,7 +101,7 @@ def get_selected(tree, get_all=False):
             col_item = cat_item.child(j)
             if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
                 checked.append(str(col_item.text(0)))
-    return checked    
+    return checked
 
 def set_file(parent, line_edit, extension, do_split=False):
     '''
@@ -128,7 +128,7 @@ def set_directory(parent, line_edit):
                 parent, _fromUtf8('Zielverzeichnis wählen')))
     # dirname is '' if canceled
     if len(dirname) > 0:
-        line_edit.setText(dirname)    
+        line_edit.setText(dirname)
 
 def validate_dbstring(string):
     '''
@@ -256,7 +256,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         self.identifiers_frame.setDisabled(True)
         self.identifiers_frame.setHidden(True)
         self.schema_combo.addItems(schemata)
-        self.OK_button.setDisabled(True)  
+        self.OK_button.setDisabled(True)
 
         self.show()
 
@@ -430,7 +430,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
                     self.projection_combo.setCurrentIndex(len(self.projection_combo) - 1)
 
         self.message_edit.append(message)
-        
+
 
 class UploadAreaDialog(UploadShapeDialog):
     '''
@@ -438,24 +438,24 @@ class UploadAreaDialog(UploadShapeDialog):
     '''
     def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
         upload_function = db_connection.add_area
-        super(UploadAreaDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)        
-        self.identifiers_frame.setHidden(False)      
+        super(UploadAreaDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        self.identifiers_frame.setHidden(False)
         self.OK_button.setDisabled(True)
-    
+
     def upload(self):
         success = super(UploadAreaDialog, self).upload()
         if success and not self.auto_args:
             self.selectIdentifiers()
-            
+
     def set_identifiers(self):
         # try to set zone with selected values, repeat if errors occure
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
         idx = self.hst_combo.currentIndex()
         hst_id = self.hst_combo.itemData(idx).toList()[0].toInt()[0]
-        
-        success, msg = self.db_connection.set_zone(self.schema, self.name, hst_id, zone_id_column=id_key, zone_name_column=name_key)        
-        
+
+        success, msg = self.db_connection.set_zone(self.schema, self.name, hst_id, zone_id_column=id_key, zone_name_column=name_key)
+
         if success:
             self.accept()
         else:
@@ -463,7 +463,7 @@ class UploadAreaDialog(UploadShapeDialog):
                 QtGui.QMessageBox.Warning, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             msgBox.exec_()
-            
+
     def set_default_stops(self):
         idx = self.hst_combo.currentIndex()
         def_stop_id = self.hst_combo.itemData(idx).toList()[0].toInt()
@@ -475,7 +475,7 @@ class UploadAreaDialog(UploadShapeDialog):
 
         self.upload_frame.setDisabled(True)
         for id, name, schema, can_be_deleted in self.db_connection.get_stations_available():
-            self.hst_combo.addItem(name, [id])        
+            self.hst_combo.addItem(name, [id])
 
         key_columns = self.db_connection.get_column_names(self.schema, self.name)
         # remove column geom, this one shouldn't become pkey
@@ -489,8 +489,8 @@ class UploadAreaDialog(UploadShapeDialog):
         self.identifiers_frame.setDisabled(False)
         self.OK_button.clicked.connect(self.set_identifiers)
         self.cancel_button.setDisabled(True)
-        self.OK_button.setDisabled(False)        
-        
+        self.OK_button.setDisabled(False)
+
 class UploadStationDialog(UploadShapeDialog):
     '''
     dialog for uploading shapes to add stations (no second step)
@@ -499,15 +499,15 @@ class UploadStationDialog(UploadShapeDialog):
         upload_function = db_connection.add_stations
         super(UploadStationDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
         self.name_edit.setDisabled(True)
-            
+
     def upload(self):
         success = super(UploadStationDialog, self).upload()
         if success:
             self.upload_frame.setDisabled(True)
-            self.OK_button.setDisabled(False)  
+            self.OK_button.setDisabled(False)
             self.OK_button.clicked.connect(self.close)
-            self.cancel_button.setDisabled(True) 
-    
+            self.cancel_button.setDisabled(True)
+
 class SelectDialog(QtGui.QDialog):
     '''
     executable dialog for getting an item out of a combobox with the given items,
@@ -707,9 +707,9 @@ class ExecUploadShape(ExecDialog):
             on_success=self.on_success)
 
 
-class ExecShapeDownload(ExecDialog):
+class ExecDownloadResultsShape(ExecDialog):
     def __init__(self, db_connection, columns, filename, parent=None, auto_close=False):
-        super(ExecShapeDownload, self).__init__(parent=parent, auto_close=auto_close)
+        super(ExecDownloadResultsShape, self).__init__(parent=parent, auto_close=auto_close)
         self.filename = filename
         self.db_connection = db_connection
         self.columns = columns
@@ -723,54 +723,78 @@ class ExecShapeDownload(ExecDialog):
         self.db_connection.results_to_shape(
             self.columns, self.process, self.filename,
             on_progress=self.show_status)
-        
-        
-class DownloadDataDialog(QtGui.QDialog, Ui_DownloadDataDialog):
+
+class ExecDownloadTableShape(ExecDialog):
+    def __init__(self, db_connection, schema, table, filename, columns=None, parent=None, auto_close=False):
+        super(ExecDownloadTableShape, self).__init__(parent=parent, auto_close=auto_close)
+        self.filename = filename
+        self.db_connection = db_connection
+        self.schema = schema
+        self.table = table
+        self.columns = columns
+
+        # start process directly (simulate click on start)
+        self.startButton.clicked.emit(True)
+        # in fact in this case we don't need a start button at all
+        self.startButton.hide()
+
+    def run(self):
+        self.db_connection.db_table_to_shape_file(
+            self.schema, self.table, self.process, self.filename,
+            columns=self.columns, on_progress=self.show_status)
+
+
+class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
     def __init__(self, db_conn, parent=None):
-        super(DownloadDataDialog, self).__init__(parent)
+        super(DownloadTablesDialog, self).__init__(parent)
         self.setupUi(self)
         self.download_button.clicked.connect(self.download)
         self.cancel_button.clicked.connect(self.close)
         self.db_conn = db_conn
-        
+
         header = QtGui.QTreeWidgetItem(["Kategorie","Beschreibung"])
-        self.tables_to_download_tree.setHeaderItem(header)    
-        self.tables_to_download_tree.itemClicked.connect(check_status)        
+        self.tables_to_download_tree.setHeaderItem(header)
+        self.tables_to_download_tree.itemClicked.connect(check_status)
 
         self.select_dir_button.clicked.connect(
             lambda: set_directory(self, self.dir_edit))
-        
+
 #        self.tables_to_download_tree.clear()
         tables_to_download = db_conn.get_tables_to_download()
+        self.schemata = {}
         prev_cat = None
         for id, name, schema, tablename, category in tables_to_download:
-            if prev_cat != category:                
+            self.schemata[tablename] = schema
+            if prev_cat != category:
                 cat_item = QtGui.QTreeWidgetItem(self.tables_to_download_tree, [_fromUtf8(category)])
                 cat_item.setCheckState(0,QtCore.Qt.Unchecked)
                 cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
                 prev_cat = category
-            
+
             col_item = QtGui.QTreeWidgetItem(cat_item, [_fromUtf8(tablename)])
             col_item.setCheckState(0,QtCore.Qt.Unchecked)
             col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
             col_item.setText(1, _fromUtf8(name))
-            
-        self.tables_to_download_tree.resizeColumnToContents(0)        
 
-        self.show()    
-     
+        self.tables_to_download_tree.resizeColumnToContents(0)
+
+        self.show()
+
     def download(self):
         directory = self.dir_edit.text()
         if not directory:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                        _fromUtf8('Sie müssen ein Zielverzeichnis wählen!'))
             msgBox.exec_()
-            return            
-        
+            return
+
         selected_tables = get_selected(self.tables_to_download_tree)
-        
+
         for table in selected_tables:
             table = str(table)
             filename = os.path.join(str(directory), table + '.csv')
-            table = 'strukturdaten.' + table
-            self.db_conn.db_table_to_csv_file([], table, filename)
+            schema = self.schemata[table]
+            diag = ExecDownloadTableShape(self.db_conn, schema, table, filename, parent=self, auto_close=True)
+            diag.exec_()
+
+        self.close()
