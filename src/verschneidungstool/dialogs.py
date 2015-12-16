@@ -174,12 +174,12 @@ class SettingsDialog(QtGui.QDialog, Ui_Settings):
         fill form with values from stored config
         '''
         db_config = config.settings['db_config']
-        self.username_edit.setText(db_config['username'])
-        self.password_edit.setText(db_config['password'])
-        self.dbname_edit.setText(db_config['db_name'])
-        self.host_edit.setText(db_config['host'])
-        self.port_edit.setText(db_config['port'])
-        self.srid_edit.setText(db_config['srid'])
+        self.username_edit.setText(str(db_config['username']))
+        self.password_edit.setText(str(db_config['password']))
+        self.dbname_edit.setText(str(db_config['db_name']))
+        self.host_edit.setText(str(db_config['host']))
+        self.port_edit.setText(str(db_config['port']))
+        self.srid_edit.setText(str(db_config['srid']))
 
         env = config.settings['env']
         self.psql_edit.setText(env['psql_path'])
