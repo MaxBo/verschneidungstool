@@ -792,6 +792,12 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
 
         selected_tables = get_selected(self.tables_to_download_tree)
 
+        if len(selected_tables) == 0:
+            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                       _fromUtf8('Sie müssen mindestens eine Tabelle auswählen'))
+            msg_box.exec_()
+            return
+
         for table in selected_tables:
             table = str(table)
             filename = os.path.join(str(directory), table + '.csv')

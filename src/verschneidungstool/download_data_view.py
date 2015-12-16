@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'download_data.ui'
 #
-# Created: Wed Dec 16 11:33:04 2015
+# Created: Wed Dec 16 11:34:30 2015
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -67,7 +67,7 @@ class Ui_DownloadDataDialog(object):
         QtCore.QMetaObject.connectSlotsByName(DownloadDataDialog)
 
     def retranslateUi(self, DownloadDataDialog):
-        DownloadDataDialog.setWindowTitle(_translate("DownloadDataDialog", "Einzeldaten herunterladen", None))
+        DownloadDataDialog.setWindowTitle(_translate("DownloadDataDialog", "Strukturdaten herunterladen", None))
         self.cancel_button.setText(_translate("DownloadDataDialog", "Abbrechen", None))
         self.download_button.setText(_translate("DownloadDataDialog", "Herunterladen", None))
         self.select_dir_button.setText(_translate("DownloadDataDialog", "...", None))
