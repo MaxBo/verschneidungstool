@@ -437,7 +437,7 @@ class DBConnection(object):
             def run(self):
 
                 sql_pkey = """
-                SELECT pkey, zone_name
+                SELECT pkey, zone_name, zone_id
                 FROM meta.areas_available
                 WHERE schema='{schema}'
                 AND table_name='{table}';
@@ -459,11 +459,12 @@ class DBConnection(object):
 
                 pkey = row.pkey
                 zone_name = row.zone_name
+                zone_id = row.zone_id
 
                 queries = fetch(sql_queries)
 
-                if not pkey:
-                    msg = 'Fehlerhafter Eintrag für {schema}.{table}.\nEs ist kein primary key angegeben.'.format(schema=schema, table=table)
+                if (not pkey) or (not zone_id):
+                    msg = 'Fehlerhafter Eintrag für {schema}.{table}.\nEs ist keine zone_id oder kein primary key angegeben.'.format(schema=schema, table=table)
                     self.emit( signal, msg, 0)
                     return
 
@@ -484,7 +485,7 @@ class DBConnection(object):
                 t.geom::geometry(GEOMETRY) AS geom,
                 {name_str}::text AS zone_name
                 FROM {schema}.{table} AS t;"""
-                execute(sql_prep.format(pkey=pkey, schema=schema, table=table,
+                execute(sql_prep.format(pkey=zone_id, schema=schema, table=table,
                                         name_str=name_str))
 
                 weight_sum = sum(q.weight for q in queries)
