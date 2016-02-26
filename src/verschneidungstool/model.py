@@ -535,6 +535,20 @@ class DBConnection(object):
         FROM meta.last_area_calculated
         """
         return self.fetch(sql)
+    
+    def force_reset_calc(self):
+        '''
+        resets the database entry for locking calculations to be able to start new
+        last row is identified by max id
+        warning: if a calculation is still running, new calculation may result in errors
+        '''
+        sql = """
+        UPDATE meta.scenario 
+        SET finished = true
+        WHERE id = (SELECT max(id) FROM meta.scenario )
+        """
+        self.execute(sql)
+        
 
     # empty column array selects all columns (*)
     def db_table_to_csv_file(self, schema, table, filename, columns=None):

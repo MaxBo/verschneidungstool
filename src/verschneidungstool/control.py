@@ -312,10 +312,20 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         if len(last_calc) > 0 and not last_calc[0].finished:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8('Derzeit findet bereits eine Berechnung statt!\n' +
-                                                 'Bitte warten Sie, bis diese abgeschlossen ist.'))
-            msgBox.exec_()
-            return
+                                       _fromUtf8('Derzeit scheint bereits eine Berechnung stattzufinden!\n' +
+                                                 'Bitte warten Sie, bis diese abgeschlossen ist.\n\n' +
+                                                 'Wenn Sie sich sicher sind, dass alle Berechnungen bereits abgeschlossen sind, können Sie eine neue Berechnung erzwingen.'))
+
+            msgBox.addButton(QtGui.QPushButton('Berechnung erzwingen'),
+                             QtGui.QMessageBox.YesRole)
+            msgBox.addButton(QtGui.QPushButton('Abbrechen'),
+                             QtGui.QMessageBox.NoRole)   
+            reply = msgBox.exec_()                    
+            
+            # 2nd button clicked (==No)          
+            if reply == 1:
+                return
+            self.db_conn.force_reset_calc()
 
         if not auto_args:
             item = self.layer_combo.itemData(self.layer_combo.currentIndex()).toList()
@@ -374,11 +384,19 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         check_last_calculation = selected_data[7].toBool()
 
         if check_last_calculation and not last_calc[0].finished:
-            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8('Derzeit findet eine Berechnung statt!\n' +
-                                                 'Bitte warten Sie, bis diese abgeschlossen ist.'))
-            msg_box.exec_()
-            return
+            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
+                                       _fromUtf8('Derzeit scheint bereits eine Berechnung stattzufinden!\n' +
+                                                 'Bitte warten Sie, bis diese abgeschlossen ist.\n\n' +
+                                                 'Wenn Sie sich sicher sind, dass alle Berechnungen bereits abgeschlossen sind, können Sie die Ergebnisse dennoch herunterladen.'))
+
+            msgBox.addButton(QtGui.QPushButton('Herunterladen erzwingen'),
+                             QtGui.QMessageBox.YesRole)
+            msgBox.addButton(QtGui.QPushButton('Abbrechen'),
+                             QtGui.QMessageBox.NoRole)   
+            reply = msgBox.exec_() 
+            # 2nd button clicked (==No)
+            if reply == 1:
+                return
 
         if not auto_args:
             if len(selected_columns) == 0:
@@ -485,7 +503,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.db_conn, results_schema, results_table, selected_columns,
             filename, parent=self, auto_close=auto_close)
             diag.exec_()
-
 
         if csv or xls:
             msg_box.close()
