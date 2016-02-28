@@ -1,4 +1,4 @@
-REFRESH MATERIALIZED VIEW einwohner.view_b1_m_all_buildings;
+﻿REFRESH MATERIALIZED VIEW einwohner.view_b1_m_all_buildings;
 REFRESH MATERIALIZED VIEW einwohner.view_g_m_buildings_ewsynth_alkl;
 REFRESH MATERIALIZED VIEW einwohner.view_i03_m_building_ewsynth_alkl_nach_abgleich_mit_statbez;
 REFRESH MATERIALIZED VIEW landuse.matview_erholungsflaeche;
@@ -10,7 +10,7 @@ REFRESH MATERIALIZED VIEW apl.matview_alle_betriebe;
 REFRESH MATERIALIZED VIEW apl.matview_apl_mit_rsa;
 REFRESH MATERIALIZED VIEW strukturdaten.matview_pgr_alkl_gebtyp;
 
-
+SET SESSION AUTHORIZATION verkehr;
 DROP VIEW verkehrszellen.view_vz_aktuell CASCADE;
 DROP TABLE IF EXISTS strukturdaten.vz_apl_wz_bereiche;
 DROP TABLE IF EXISTS strukturdaten.vz_handel;
@@ -229,25 +229,28 @@ AS
         p.gem_id = s.gem_id AND
         p.id = i.progbez_id;
 
-CREATE OR REPLACE VIEW verkehrszellen.vz_aktuell_gebietstypen(
-    id,
-    typeno,
-    anschiene,
-    faktor_eink)
-AS
-  SELECT v.id,
-         z.typeno,
-         COALESCE(s.an_schiene, 0::smallint) AS anschiene,
-         e.faktor_eink
-  FROM verkehrszellen.view_vz_aktuell v
-       LEFT JOIN verkehrszellen.vz_aktuell_buffer_schiene s ON st_intersects(
-         st_pointonsurface(v.geom), s.geom) AND v.geom && s.geom,
-       verkehrszellen.faktor_einkauf e,
-       verkehrszellen.zentralitaet z
-  WHERE st_intersects(st_pointonsurface(v.geom), z.geom) AND
-        v.geom && z.geom AND
-        st_intersects(st_pointonsurface(v.geom), e.geom) AND
-        v.geom && e.geom;
+
+
+CREATE MATERIALIZED VIEW verkehrszellen.matview_vzaktuell_centroids 
+AS 
+SELECT id, st_pointonsurface(v.geom) AS geom
+FROM verkehrszellen.view_vz_aktuell v;
+CREATE INDEX matview_vzaktuell_centroids_geom_idx ON verkehrszellen.matview_vzaktuell_centroids 
+USING gist(geom);
+
+
+CREATE OR REPLACE VIEW verkehrszellen.vz_aktuell_gebietstypen AS 
+ SELECT v.id, 
+    z.typeno, 
+    COALESCE(s.an_schiene, 0::smallint) AS anschiene, 
+    e.faktor_eink
+   FROM    verkehrszellen.view_vz_aktuell v
+   LEFT JOIN verkehrszellen.matview_vzaktuell_centroids c ON v.id=c.id
+   LEFT JOIN verkehrszellen.vz_aktuell_buffer_schiene s ON st_intersects(c.geom, s.geom) , 
+    verkehrszellen.faktor_einkauf e, 
+    verkehrszellen.zentralitaet z
+  WHERE st_intersects(c.geom, z.geom) AND st_intersects(c.geom, e.geom) ;
+
 
 CREATE MATERIALIZED VIEW verkehrszellen.matview_vz_aktuell_gebietstypen(
     id,
@@ -282,7 +285,10 @@ AS
            pg.pgr
   ORDER BY ew.vz_id,
            pg.pgr;
-		   
+
+REFRESH MATERIALIZED VIEW verkehrszellen.matview_vz_aktuell_gebietstypen;
+
+     	   
 CREATE OR REPLACE VIEW einwohner.vz_personengruppen_prognosejahr(
     vz_id,
     pgr,
