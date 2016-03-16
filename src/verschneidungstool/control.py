@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import SettingsDialog, UploadAreaDialog, UploadStationDialog, ExecDownloadResultsShape, IntersectionDialog, DownloadTablesDialog, check_status, get_selected
+from verschneidungstool.dialogs import ConfigDialog, UploadAreaDialog, UploadStationDialog, ExecDownloadResultsShape, IntersectionDialog, DownloadTablesDialog, check_status, get_selected
 from extractiontools.connection import Login
 from PyQt4 import QtGui, QtCore
 import os
@@ -303,7 +303,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.structure_tree.resizeColumnToContents(0)
 
     def edit_settings(self):
-        diag = SettingsDialog(self)  #, on_change=self.dbreset)
+        diag = ConfigDialog(self)  #, on_change=self.dbreset)
 
     def intersect(self, auto_args):
 
@@ -319,10 +319,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.addButton(QtGui.QPushButton('Berechnung erzwingen'),
                              QtGui.QMessageBox.YesRole)
             msgBox.addButton(QtGui.QPushButton('Abbrechen'),
-                             QtGui.QMessageBox.NoRole)   
-            reply = msgBox.exec_()                    
-            
-            # 2nd button clicked (==No)          
+                             QtGui.QMessageBox.NoRole)
+            reply = msgBox.exec_()
+
+            # 2nd button clicked (==No)
             if reply == 1:
                 return
             self.db_conn.force_reset_calc()
@@ -392,8 +392,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             msgBox.addButton(QtGui.QPushButton('Herunterladen erzwingen'),
                              QtGui.QMessageBox.YesRole)
             msgBox.addButton(QtGui.QPushButton('Abbrechen'),
-                             QtGui.QMessageBox.NoRole)   
-            reply = msgBox.exec_() 
+                             QtGui.QMessageBox.NoRole)
+            reply = msgBox.exec_()
             # 2nd button clicked (==No)
             if reply == 1:
                 return

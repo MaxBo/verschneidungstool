@@ -6,7 +6,7 @@ from verschneidungstool.download_data_view import Ui_DownloadDataDialog
 from PyQt4 import QtCore, QtGui
 from verschneidungstool.config import Config, DEFAULT_SRID
 from verschneidungstool.model import parse_projection_file, parse_projection_data
-import copy, os, re
+import copy, os, re, sys
 
 config = Config()
 
@@ -15,6 +15,9 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
+
+XML_FILTER = 'XML-Dateien (*.xml)'
+ALL_FILES_FILTER = 'Alle Dateien (*.*)'
 
 DEFAULT_STYLE = """
 QProgressBar{
@@ -103,18 +106,24 @@ def get_selected(tree, get_all=False):
                 checked.append(str(col_item.text(0)))
     return checked
 
-def set_file(parent, line_edit, extension, do_split=False):
+def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx = 0, do_split=False):
     '''
     open a file browser to put a path to a file into the given line edit
     '''
-    try:
-        current = os.path.split(str(line_edit.text()))[0]
-    except:
-        current = ''
+    # set directory to directory of current entry if not given
+    if not directory:
+        try:
+            directory = os.path.split(str(line_edit.text()))[0]
+        except:
+            directory = ''
 
     filename = str(
         QtGui.QFileDialog.getOpenFileName(
-            parent, _fromUtf8('Datei wählen'), current+'/'+extension))
+            parent, _fromUtf8('Datei wählen'),
+            directory,
+            ';;'.join(filters),
+            filters[selected_filter_idx]
+        ))
     if do_split:
         filename = os.path.split(filename)[0]
 
@@ -141,27 +150,34 @@ def validate_dbstring(string):
         return True
     return False
 
-class SettingsDialog(QtGui.QDialog, Ui_Settings):
+class ConfigDialog(QtGui.QDialog, Ui_Settings):
     '''
     open a dialog to set the project name and folder and afterwards create
     a new project
     '''
 
     def __init__(self, parent=None, on_change=None):
-        super(SettingsDialog, self).__init__(parent)
+        super(ConfigDialog, self).__init__(parent)
         self.setupUi(self)
         self.old_db_config = copy.deepcopy(config.settings['db_config'])
         self.login_changed = False
         self.on_change = on_change
-        self.OK_button.clicked.connect(self.write_config)
-        self.cancel_button.clicked.connect(self.close)
-
+        self.OK_button.clicked.connect(self.exit_with_saving)
+        self.cancel_button.clicked.connect(self.exit_without_saving)
         self.psql_browse_button.clicked.connect(
-            lambda: set_file(self, self.psql_edit, 'psql.exe'))
+            lambda: set_file(self, self.psql_edit,
+                             filters=[ALL_FILES_FILTER, 'PSQL (psql.exe)'],
+                             selected_filter_idx=1))
         self.shp2pgsql_browse_button.clicked.connect(
-            lambda: set_file(self, self.shp2pgsql_edit, 'shp2pgsql.exe'))
+            lambda: set_file(self, self.shp2pgsql_edit,
+                             filters=[ALL_FILES_FILTER, 'SHP2PGSQL (shp2pgsql.exe)'],
+                             selected_filter_idx=1))
         self.pgsql2shp_browse_button.clicked.connect(
-            lambda: set_file(self, self.pgsql2shp_edit, 'pgsql2shp.exe'))
+            lambda: set_file(self, self.pgsql2shp_edit,
+                             filters=[ALL_FILES_FILTER, 'PGSQL2SHP (pgsql2shp.exe)'],
+                             selected_filter_idx=1))
+
+        self.load_config_button.clicked.connect(self.load_external_config)
 
         self.srid_default_button.clicked.connect(
             lambda: self.srid_edit.setText(str(DEFAULT_SRID)))
@@ -186,7 +202,12 @@ class SettingsDialog(QtGui.QDialog, Ui_Settings):
         self.shp2pgsql_edit.setText(env['shp2pgsql_path'])
         self.pgsql2shp_edit.setText(env['pgsql2shp_path'])
 
-    def write_config(self):
+    def exit_without_saving(self):
+        # reread old config-file (needed if canceked after loading external xml)
+        config.read()
+        self.close()
+
+    def exit_with_saving(self):
         '''
         get values from form and write changed config to config singleton and to disk
         '''
@@ -211,6 +232,18 @@ class SettingsDialog(QtGui.QDialog, Ui_Settings):
         if self.on_change and (len(shared_items) != len(db_config)):
             self.on_change()
 
+    def load_external_config(self):
+        filters = ';;'.join([ALL_FILES_FILTER, XML_FILTER])
+
+        filename = str(QtGui.QFileDialog.getOpenFileName(
+            self, _fromUtf8('Datei wählen'),
+            os.path.split((sys.argv)[0])[0],
+            filters, XML_FILTER))
+
+        # filename is '' if canceled
+        if len(filename) > 0:
+            config.read(filename=filename)
+            self.fill()
 
     def set_folder(self, line_edit):
         '''

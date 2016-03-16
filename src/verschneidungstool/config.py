@@ -42,26 +42,29 @@ class Config(Borg):
         read the config from given xml file (default config.xml)
         '''
 
-        self.filename = filename if filename else DEFAULT_FILE
+        if not filename:
+            filename = DEFAULT_FILE
 
         # create file if it does not exist
-        if not os.path.isfile(self.filename):
+        if not os.path.isfile(filename):
             self.settings = copy.deepcopy(setting_struct)
-            self.write(self.filename)
-        tree = etree.parse(self.filename)
+            self.write(filename)
+        tree = etree.parse(filename)
         self.settings = copy.deepcopy(setting_struct)
         f_set = xml_to_dict(tree.getroot())
         for key, value in f_set.iteritems():
             self.settings[key].update(value)
+
     def write(self, filename=None):
         '''
         write the config as xml to given file (default config.xml)
         '''
 
+        if not filename:
+            filename = DEFAULT_FILE
+
         xml_tree = etree.Element('CONFIG')
         dict_to_xml(xml_tree, self.settings)
-        if not filename:
-            filename = self.filename
         etree.ElementTree(xml_tree).write(str(filename), pretty_print=True)
 
 def dict_to_xml(element, dictionary):

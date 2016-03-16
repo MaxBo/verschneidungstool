@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'settings.ui'
 #
-# Created: Wed Dec 16 11:34:30 2015
+# Created: Wed Mar 16 11:14:37 2016
 #      by: PyQt4 UI code generator 4.11.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_Settings(object):
     def setupUi(self, Settings):
         Settings.setObjectName(_fromUtf8("Settings"))
-        Settings.resize(550, 250)
+        Settings.resize(550, 263)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -40,6 +40,9 @@ class Ui_Settings(object):
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.load_config_button = QtGui.QPushButton(Settings)
+        self.load_config_button.setObjectName(_fromUtf8("load_config_button"))
+        self.horizontalLayout.addWidget(self.load_config_button)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.OK_button = QtGui.QPushButton(Settings)
@@ -151,6 +154,7 @@ class Ui_Settings(object):
 
     def retranslateUi(self, Settings):
         Settings.setWindowTitle(_translate("Settings", "Einstellungen", None))
+        self.load_config_button.setText(_translate("Settings", "Konfiguration laden", None))
         self.OK_button.setText(_translate("Settings", "OK", None))
         self.cancel_button.setText(_translate("Settings", "Abbrechen", None))
         self.label_5.setText(_translate("Settings", "Passwort", None))
