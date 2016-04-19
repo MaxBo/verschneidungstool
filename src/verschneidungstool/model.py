@@ -277,6 +277,15 @@ class DBConnection(object):
                  on_progress=None, srid=None, on_exit=None):
         psql_path = config.settings['env']['psql_path']
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
+
+        if not os.path.exists(psql_path):
+            on_progress(u'<b>Die angegebene <i>psql_path.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            return
+
+        if not os.path.exists(shp2pgsql_path):
+            on_progress(u'<b>Die angegebene <i>shp2pgsql_path.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            return
+
         options = '-c -g geom -I'
         self.on_progress = on_progress
         target_srid = config.settings['db_config']['srid']
@@ -286,7 +295,7 @@ class DBConnection(object):
         #put tmp file in folder where this script is located
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
-        shp2pgsql_cmd = '"{executable}" {options} "{input_file}" {schema}.{table}"'.format(
+        shp2pgsql_cmd = u'"{executable}" {options} "{input_file}" {schema}.{table}"'.format(
             executable=shp2pgsql_path, options=options, input_file=shapefile, schema=schema, table=name)
 
         def finished(exit_code, exit_status):
@@ -323,7 +332,7 @@ class DBConnection(object):
             sys_env.insert("PGPASSWORD", db_config['password'])
             process.setProcessEnvironment(sys_env)
 
-            psql_cmd = '"{executable}" -d {database} -a -h {host} -p {port} -U {user} -w -f "{input_file}"'.format(
+            psql_cmd = u'"{executable}" -d {database} -a -h {host} -p {port} -U {user} -w -f "{input_file}"'.format(
                 executable=psql_path, database=db_config['db_name'],
                 host=db_config['host'], port=db_config['port'],
                 user=db_config['username'], input_file=tmp_file)
@@ -535,7 +544,7 @@ class DBConnection(object):
         FROM meta.last_area_calculated
         """
         return self.fetch(sql)
-    
+
     def force_reset_calc(self):
         '''
         resets the database entry for locking calculations to be able to start new
@@ -543,12 +552,12 @@ class DBConnection(object):
         warning: if a calculation is still running, new calculation may result in errors
         '''
         sql = """
-        UPDATE meta.scenario 
+        UPDATE meta.scenario
         SET finished = true
         WHERE id = (SELECT max(id) FROM meta.scenario )
         """
         self.execute(sql)
-        
+
 
     # empty column array selects all columns (*)
     def db_table_to_csv_file(self, schema, table, filename, columns=None):
@@ -589,9 +598,12 @@ class DBConnection(object):
 
     def db_table_to_shape_file(self, schema, table, process, filename, columns=None,
                                on_progress=None, srid=None, on_finish=None):
-        psql_path = config.settings['env']['psql_path']
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
+
+        if not os.path.exists(pgsql2shp_path):
+            on_progress(u'<b>Die angegebene <i>pgsql2shp.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            return
 
         if columns and len(columns) > 0:
             columns = ['"\""{}"\""'.format(c) for c in columns]
@@ -601,7 +613,7 @@ class DBConnection(object):
 
         sql = 'SELECT {columns} FROM {schema}.{table}'
 
-        pgsql2shp_cmd = '"{executable}" -f "{filename}" -h {host} -p {port} -u {user} -P {password} {database} "{sql}"'.format(
+        pgsql2shp_cmd = u'"{executable}" -f "{filename}" -h {host} -p {port} -u {user} -P {password} {database} "{sql}"'.format(
             executable=pgsql2shp_path,
             filename=filename,
             database=db_config['db_name'],
@@ -623,7 +635,7 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
-        on_progress('Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
+        on_progress(u'Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
         process.start(pgsql2shp_cmd)
 
 

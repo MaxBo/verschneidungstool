@@ -117,13 +117,12 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], sele
         except:
             directory = ''
 
-    filename = str(
-        QtGui.QFileDialog.getOpenFileName(
+    filename = QtGui.QFileDialog.getOpenFileName(
             parent, _fromUtf8('Datei wählen'),
             directory,
             ';;'.join(filters),
-            filters[selected_filter_idx]
-        ))
+            filters[selected_filter_idx])
+
     if do_split:
         filename = os.path.split(filename)[0]
 
@@ -132,9 +131,8 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], sele
         line_edit.setText(filename)
 
 def set_directory(parent, line_edit):
-    dirname = str(
-            QtGui.QFileDialog.getExistingDirectory(
-                parent, _fromUtf8('Zielverzeichnis wählen')))
+    dirname = QtGui.QFileDialog.getExistingDirectory(
+                parent, _fromUtf8('Zielverzeichnis wählen'))
     # dirname is '' if canceled
     if len(dirname) > 0:
         line_edit.setText(dirname)
@@ -339,7 +337,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
 
     def set_shape(self):
         set_file(self, self.shapefile_edit, '*.shp')
-        shapefile = str(self.shapefile_edit.text())
+        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
         name = self.name_edit.text()
         if(len(name) == 0):
             try:
@@ -357,7 +355,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         srid, can_convert = projection[0].toInt()
         desc = str(projection[1].toString())
         proj_not_in_db = projection[2].toBool()
-        shapefile = str(self.shapefile_edit.text())
+        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
         self.schema = self.schema_combo.currentText()
         self.name = self.name_edit.text()
         if not os.path.exists(shapefile):
@@ -397,7 +395,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
     check for a .prj corresponding to the selected shapefile and get the description of the projection
     '''
     def analyse_projection_file(self):
-        shapefile = str(self.shapefile_edit.text())
+        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
 
         if len(shapefile) == 0:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
@@ -411,7 +409,7 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
 
         else:
             self.proj_data, projcs, geogcs = parse_projection_file(prj_file)
-            message = '<i>{} analysiert</i> <br>'.format(prj_file)
+            message = u'<i>{} analysiert</i> <br>'.format(prj_file)
             message += 'PROJCS: {} <br>'.format(projcs)
             message += 'GEOGCS: {} <br>'.format(geogcs)
             self.check_projection_button.setEnabled(True)
@@ -478,7 +476,7 @@ class UploadAreaDialog(UploadShapeDialog):
     def upload(self):
         success = super(UploadAreaDialog, self).upload()
         if success and not self.auto_args:
-            self.selectIdentifiers()
+            self.select_identifiers()
 
     def set_identifiers(self):
         # try to set zone with selected values, repeat if errors occure
@@ -501,11 +499,10 @@ class UploadAreaDialog(UploadShapeDialog):
         idx = self.hst_combo.currentIndex()
         def_stop_id = self.hst_combo.itemData(idx).toList()[0].toInt()
 
-    '''
-    removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
-    '''
-    def selectIdentifiers(self):
-
+    def select_identifiers(self):
+        '''
+        removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
+        '''
         self.upload_frame.setDisabled(True)
         for id, name, schema, can_be_deleted in self.db_connection.get_stations_available():
             self.hst_combo.addItem(name, [id])
@@ -816,7 +813,7 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
         self.show()
 
     def download(self):
-        directory = self.dir_edit.text()
+        directory = unicode(self.dir_edit.text().toUtf8(), encoding="UTF-8")
         if not directory:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
                                        _fromUtf8('Sie müssen ein Zielverzeichnis wählen!'))
@@ -833,8 +830,9 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
 
         for table in selected_tables:
             table = str(table)
-            filename = os.path.join(str(directory), table + '.csv')
+            filename = os.path.join(directory, table + '.csv')
             schema = self.schemata[table]
+
             diag = ExecDownloadTableShape(self.db_conn, schema, table, filename, parent=self, auto_close=True)
             diag.exec_()
 
