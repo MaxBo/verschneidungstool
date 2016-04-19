@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="verschneidungstool",
-    version="1.0",
+    version="1.0.1",
     url='https://github.com/MaxBo/Verkehrsmodell',
     author='Christoph Franke',
     description="graphical user interface for computing intersections in the region of Hannover",
