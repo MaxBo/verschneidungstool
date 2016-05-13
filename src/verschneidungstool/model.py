@@ -635,7 +635,7 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
-        on_progress(u'Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
+        on_progress('Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
         process.start(pgsql2shp_cmd)
 
 

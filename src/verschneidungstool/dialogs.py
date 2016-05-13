@@ -830,7 +830,7 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
 
         for table in selected_tables:
             table = str(table)
-            filename = os.path.join(directory, table + '.csv')
+            filename = os.path.join(str(directory), table + '.shp')
             schema = self.schemata[table]
 
             diag = ExecDownloadTableShape(self.db_conn, schema, table, filename, parent=self, auto_close=True)
