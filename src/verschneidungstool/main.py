@@ -13,7 +13,7 @@ def startmain():
 
     parser = ArgumentParser(description="GUI Verschneidungstool")
 
-    parser.add_argument("--config", action="store_true",
+    parser.add_argument("--config", action="store",
                         help="Pfad zu einer XML-Config-Datei mit den Verbindungsdaten und Pfaden zu den Postgres-Tools (optional)",
                         dest="config")
 
@@ -37,7 +37,7 @@ def startmain():
                         help="Dateipfad für Ergebnisdownload, Dateiendung bestimmt Datentyp: shp/csv/xls (Pflicht bei Download)",
                         dest="download_file")
 
-    parser.add_argument('-j', "--jahr", action="store",
+    parser.add_argument('-j', "--jahr", action="store", type=int,
                         help="Jahr der herunterzuladenden Ergebnisse",
                         dest="year")
 
@@ -50,6 +50,7 @@ def startmain():
                         dest="table_name")
 
     parser.add_argument("--srid", action="store", default=DEFAULT_SRID,
+                        type=int,
                         help="Projektion des Shapefiles bei Shapefile-Upload (default: {d})".format(d=DEFAULT_SRID),
                         dest="srid")
 
