@@ -467,9 +467,13 @@ class UploadAreaDialog(UploadShapeDialog):
     '''
     dialog for uploading shapes to define areas, adds a second step (selecting identifiers) to UploadShapeDialog
     '''
-    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+    def __init__(self, db_connection, schemata, parent=None, on_finish=None,
+                 reserved_names=None, on_success=None, auto_args=None):
         upload_function = db_connection.add_area
-        super(UploadAreaDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        super(UploadAreaDialog, self).__init__(
+            db_connection, schemata, upload_function, parent=parent,
+            on_finish=on_finish, reserved_names=reserved_names,
+            on_success=on_success, auto_args=auto_args)
         self.identifiers_frame.setHidden(False)
         self.OK_button.setDisabled(True)
 
@@ -485,7 +489,9 @@ class UploadAreaDialog(UploadShapeDialog):
         idx = self.hst_combo.currentIndex()
         hst_id = self.hst_combo.itemData(idx).toList()[0].toInt()[0]
 
-        success, msg = self.db_connection.set_zone(self.schema, self.name, hst_id, zone_id_column=id_key, zone_name_column=name_key)
+        success, msg = self.db_connection.set_zone(
+            self.schema, self.name, hst_id,
+            zone_id_column=id_key, zone_name_column=name_key)
 
         if success:
             self.accept()

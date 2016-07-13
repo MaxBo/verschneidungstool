@@ -225,7 +225,8 @@ class DBConnection(object):
     returns True if successful
     returns False if not (e.g. column isn't unique, table doesn't exist)
     '''
-    def set_zone(self, schema, table, hst_id, zone_id_column=None, zone_name_column=''):
+    def set_zone(self, schema, table, hst_id, zone_id_column=None,
+                 zone_name_column=''):
 
         # zone-id
         sql_unique = """
@@ -272,9 +273,10 @@ class DBConnection(object):
     @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
     @param on_exit - optional, additional callback, called when process is done, expects exit-code and -status as params
     @param projection - optional, srid of the projection
+    @param encoding - optional, encoding of the shapefile
     '''
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_exit=None):
+                 on_progress=None, srid=None, on_exit=None, encoding='UTF-8'):
         psql_path = config.settings['env']['psql_path']
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
 
@@ -292,6 +294,7 @@ class DBConnection(object):
         if srid:
             options += ' -s {sourcesrid}:{target_srid}'.format(sourcesrid=srid,
                                                                target_srid=target_srid)
+        options += ' -W {}'.format(encoding)
         #put tmp file in folder where this script is located
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
@@ -364,7 +367,8 @@ class DBConnection(object):
     @param projection - optional, srid of the projection
     '''
     def add_area(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None):
+                 on_progress=None, srid=None, on_finish=None, on_success=None,
+                 encoding='UTF-8'):
 
         self.on_progress = on_progress
 
@@ -390,7 +394,9 @@ class DBConnection(object):
             if exit_code == 0 and on_success:
                 on_success()
 
-        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)
+        self.upload_shape(schema, name, shapefile, process, conversion_process,
+                          on_progress=on_progress, srid=srid, on_exit=on_exit,
+                          encoding=encoding)
 
     '''
     add stations based on a given shapefile to the database, monitor the progress
@@ -406,7 +412,8 @@ class DBConnection(object):
     @param projection - optional, srid of the projection
     '''
     def add_stations(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None):
+                 on_progress=None, srid=None, on_finish=None, on_success=None,
+                 encoding='UTF-8'):
 
         self.on_progress = on_progress
 
@@ -432,7 +439,9 @@ class DBConnection(object):
             if exit_code == 0 and on_success:
                 on_success()
 
-        self.upload_shape(schema, name, shapefile, process, conversion_process, on_progress=on_progress, srid=srid, on_exit=on_exit)
+        self.upload_shape(schema, name, shapefile, process, conversion_process,
+                          on_progress=on_progress, srid=srid, on_exit=on_exit,
+                          encoding=encoding)
 
     def new_intersection(self, schema, table):
         # set functions to scope of following class
