@@ -94,24 +94,24 @@
       <x>10</x>
       <y>20</y>
       <width>531</width>
-      <height>241</height>
+      <height>250</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="upload_layout">
      <item row="1" column="0">
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="shapefile_edit"/>
-       </item>
-       <item row="1" column="1">
+       <item row="2" column="1">
         <widget class="QComboBox" name="schema_combo"/>
        </item>
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
           <string>Zielschema</string>
          </property>
         </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="shapefile_edit"/>
        </item>
        <item row="0" column="2">
         <widget class="QPushButton" name="shapefile_browse_button">
@@ -126,6 +126,13 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="label_6">
          <property name="text">
@@ -133,31 +140,31 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="name_edit"/>
-       </item>
-       <item row="4" column="0">
+       <item row="5" column="0">
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>Projektion</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </widget>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="name_edit"/>
        </item>
-       <item row="4" column="1">
+       <item row="5" column="1">
         <widget class="QComboBox" name="projection_combo">
          <property name="editable">
           <bool>false</bool>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="5" column="2">
+        <widget class="QPushButton" name="check_projection_button">
+         <property name="text">
+          <string>Projektion prüfen</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -170,10 +177,24 @@
          </property>
         </spacer>
        </item>
-       <item row="4" column="2">
-        <widget class="QPushButton" name="check_projection_button">
+       <item row="1" column="1">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QComboBox" name="encoding_combo"/>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="custom_encoding_edit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_8">
          <property name="text">
-          <string>Projektion prüfen</string>
+          <string>Encoding</string>
          </property>
         </widget>
        </item>

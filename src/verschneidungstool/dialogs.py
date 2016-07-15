@@ -4,8 +4,10 @@ from verschneidungstool.upload_view import Ui_Upload
 from verschneidungstool.progress_view import Ui_ProgressDialog
 from verschneidungstool.download_data_view import Ui_DownloadDataDialog
 from PyQt4 import QtCore, QtGui
-from verschneidungstool.config import Config, DEFAULT_SRID
-from verschneidungstool.model import parse_projection_file, parse_projection_data
+from verschneidungstool.config import (Config, DEFAULT_SRID,
+                                       ENCODINGS, DEFAULT_ENCODING)
+from verschneidungstool.model import (parse_projection_file,
+                                      parse_projection_data)
 import copy, os, re, sys
 
 config = Config()
@@ -289,10 +291,26 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         self.schema_combo.addItems(schemata)
         self.OK_button.setDisabled(True)
 
+        self.encoding_combo.addItem("Andere (rechts eintragen)")
+        for encoding in ENCODINGS:
+            self.encoding_combo.addItem(encoding)
+        default_idx = self.encoding_combo.findText(DEFAULT_ENCODING,
+                                                   QtCore.Qt.MatchFixedString)
+        self.encoding_combo.setCurrentIndex(default_idx)
+
+        self.encoding_combo.currentIndexChanged.connect(self.encoding_changed)
+
         self.show()
 
         if auto_args:
             self.auto_start()
+
+    def encoding_changed(self):
+        idx = self.encoding_combo.currentIndex()
+        # 'Andere' selected -> enable custom edit
+        enabled = idx == 0
+        self.custom_encoding_edit.setEnabled(enabled)
+        self.custom_encoding_edit.setText("")  # clear text edit
 
     def auto_start(self):
         shapefile = self.auto_args['shape_path']
@@ -357,6 +375,13 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         proj_not_in_db = projection[2].toBool()
         shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
         self.schema = self.schema_combo.currentText()
+
+        # take custom encoding if enabled else selected one in combo
+        if self.custom_encoding_edit.isEnabled():
+            encoding = self.custom_encoding_edit.text()
+        else:
+            encoding = self.encoding_combo.currentText()
+
         self.name = self.name_edit.text()
         if not os.path.exists(shapefile):
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
@@ -386,8 +411,14 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
             auto_close = True
         else:
             auto_close = False
-        self.upload_diag = ExecUploadShape(self.db_connection, self.schema, self.name, shapefile, self.upload_function,
-                                      parent=self, srid=srid, on_finish=self.on_finish, on_success=self.on_success, auto_close=auto_close)
+        self.upload_diag = ExecUploadShape(self.db_connection, self.schema,
+                                           self.name, shapefile,
+                                           self.upload_function,
+                                           parent=self, srid=srid,
+                                           on_finish=self.on_finish,
+                                           on_success=self.on_success,
+                                           auto_close=auto_close,
+                                           encoding=encoding)
         self.upload_diag.exec_()
         return True
 
@@ -703,7 +734,8 @@ class ExecDialog(ProgressDialog):
 
 class ExecUploadShape(ExecDialog):
     def __init__(self, db_connection, schema, name, shapefile, upload_function,
-                 srid=None, parent=None, on_finish=None, on_success=None, auto_close=False):
+                 srid=None, parent=None, on_finish=None, on_success=None,
+                 auto_close=False, encoding=DEFAULT_ENCODING):
         super(ExecUploadShape, self).__init__(parent=parent, auto_close=auto_close)
         self.schema = schema
         self.name = name
@@ -714,6 +746,7 @@ class ExecUploadShape(ExecDialog):
         self.on_finish = on_finish
         self.on_success = on_success
         self.upload_function = upload_function
+        self.encoding = encoding
 
         self.conversion.started.connect(self.running)
         self.conversion.finished.connect(self.conversion_finished)
@@ -740,7 +773,9 @@ class ExecUploadShape(ExecDialog):
             self.process, self.conversion, srid=self.srid,
             on_progress=self.show_status,
             on_finish=self.on_finish,
-            on_success=self.on_success)
+            on_success=self.on_success,
+            encoding=self.encoding
+        )
 
 
 class ExecDownloadResultsShape(ExecDialog):
