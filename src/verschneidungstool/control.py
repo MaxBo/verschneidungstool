@@ -175,7 +175,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             return True
         except Exception as e:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8("Fehler bei der Verbindung zur Datenbank!"))
+                                       _fromUtf8("Fehler bei der Verbindung zur Datenbank!\n\n")
+                                       + str(e))
             msgBox.exec_()
             # disable all elements on exception
             self.main_frame.setEnabled(False)
