@@ -33,7 +33,11 @@ class DBConnection(object):
         with Connection(login=self.login) as conn:
             self.conn = conn
             cursor = self.conn.cursor()
-            cursor.execute(sql)
+            try:
+                cursor.execute(sql)
+            except psycopg2.ProgrammingError as e:
+                raise psycopg2.ProgrammingError(
+                    os.linesep.join((sql, e.message)))
             conn.commit()
 
     def get_areas_available(self):
