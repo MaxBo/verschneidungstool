@@ -506,9 +506,12 @@ class DBConnection(object):
                 t."{pkey}"::integer AS id,
                 t.geom::geometry(GEOMETRY) AS geom,
                 {name_str}::text AS zone_name
+
                 FROM {schema}.{table} AS t;"""
                 execute(sql_prep.format(pkey=zone_id, schema=schema, table=table,
                                         name_str=name_str))
+
+                self.add_pnt_column_if_exists(zone_id, name_str)
 
                 weight_sum = sum(q.weight for q in queries)
                 progress = 0
@@ -533,6 +536,37 @@ class DBConnection(object):
                           'Verschneidung beendet!', 100)
 
                 return
+
+            def add_pnt_column_if_exists(self, zone_id, name_str):
+                # add point column, if exists
+                col_pnt = 'pnt'
+                sql_col_exists = '''
+                            SELECT EXISTS (SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema='{schema}'
+                            AND table_name='{table}'
+                            AND column_name='{col}');
+                            '''
+                col_exists = fetch(sql_col_exists.format(schema=schema,
+                                                         table=table,
+                                                         col=col_pnt))
+                if col_exists[0][0]:
+                    pnt_col_def = 't.{}::geometry(POINT)'.format(col_pnt)
+                else:
+                    pnt_col_def = 'st_pointonsurface(t.geom)::geometry(POINT)'
+
+                sql_pnt = """
+                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell_pnt (id, pnt, zone_name) AS
+                SELECT
+                t."{pkey}"::integer AS id,
+                {pnt_col_def} AS pnt,
+                {name_str}::text AS zone_name
+
+                FROM {schema}.{table} AS t;"""
+                execute(sql_pnt.format(pkey=zone_id,
+                                       schema=schema, table=table,
+                                       name_str=name_str,
+                                       pnt_col_def=pnt_col_def))
 
         thread = Intersection()
         return thread
