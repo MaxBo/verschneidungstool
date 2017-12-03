@@ -1,0 +1,3 @@
+call activate verschneidungstool
+call verschneidungstool
+exit
