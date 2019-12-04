@@ -3,7 +3,7 @@ from verschneidungstool.settings_view import Ui_Settings
 from verschneidungstool.upload_view import Ui_Upload
 from verschneidungstool.progress_view import Ui_ProgressDialog
 from verschneidungstool.download_data_view import Ui_DownloadDataDialog
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 from verschneidungstool.config import (Config, DEFAULT_SRID,
                                        ENCODINGS, DEFAULT_ENCODING)
 from verschneidungstool.model import (parse_projection_file,
@@ -11,12 +11,6 @@ from verschneidungstool.model import (parse_projection_file,
 import copy, os, re, sys
 
 config = Config()
-
-try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
 
 XML_FILTER = 'XML-Dateien (*.xml)'
 ALL_FILES_FILTER = 'Alle Dateien (*.*)'
@@ -70,7 +64,8 @@ and accordingly update the check-status of it's parent / siblings
 '''
 def check_status(item):
     parent = item.parent()
-    # given item is sub-category -> check/uncheck/partial check of parent of given item, depending on number of checked children
+    # given item is sub-category -> check/uncheck/partial check of parent of
+    # given item, depending on number of checked children
     if(parent):
         child_count = parent.childCount()
         checked_count = 0
@@ -108,7 +103,8 @@ def get_selected(tree, get_all=False):
                 checked.append(str(col_item.text(0)))
     return checked
 
-def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], selected_filter_idx = 0, do_split=False):
+def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER],
+             selected_filter_idx = 0, do_split=False):
     '''
     open a file browser to put a path to a file into the given line edit
     '''
@@ -119,8 +115,8 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], sele
         except:
             directory = ''
 
-    filename = QtGui.QFileDialog.getOpenFileName(
-            parent, _fromUtf8('Datei wählen'),
+    filename = QtWidgets.QFileDialog.getOpenFileName(
+            parent, 'Datei wählen',
             directory,
             ';;'.join(filters),
             filters[selected_filter_idx])
@@ -133,15 +129,17 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER], sele
         line_edit.setText(filename)
 
 def set_directory(parent, line_edit):
-    dirname = QtGui.QFileDialog.getExistingDirectory(
-                parent, _fromUtf8('Zielverzeichnis wählen'))
+    dirname = QtWidgets.QFileDialog.getExistingDirectory(
+                parent, 'Zielverzeichnis wählen')
     # dirname is '' if canceled
     if len(dirname) > 0:
         line_edit.setText(dirname)
 
 def validate_dbstring(string):
     '''
-    validates if given string is valid for table- and column-names in databases (only small letters, digits and underscore allowed with trailing letter or underscore)
+    validates if given string is valid for table- and column-names in databases
+    (only small letters, digits and underscore allowed with trailing letter
+    or underscore)
     return true if valid, else false
     '''
     pattern = '^[a-z_][a-z0-9_]*$'
@@ -150,7 +148,7 @@ def validate_dbstring(string):
         return True
     return False
 
-class ConfigDialog(QtGui.QDialog, Ui_Settings):
+class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
     '''
     open a dialog to set the project name and folder and afterwards create
     a new project
@@ -209,7 +207,8 @@ class ConfigDialog(QtGui.QDialog, Ui_Settings):
 
     def exit_with_saving(self):
         '''
-        get values from form and write changed config to config singleton and to disk
+        get values from form and write changed config to config singleton
+        and to disk
         '''
         db_config = config.settings['db_config']
         db_config['username'] = str(self.username_edit.text())
@@ -235,8 +234,8 @@ class ConfigDialog(QtGui.QDialog, Ui_Settings):
     def load_external_config(self):
         filters = ';;'.join([ALL_FILES_FILTER, XML_FILTER])
 
-        filename = str(QtGui.QFileDialog.getOpenFileName(
-            self, _fromUtf8('Datei wählen'),
+        filename = str(QtWidgets.QFileDialog.getOpenFileName(
+            self, 'Datei wählen',
             os.path.split((sys.argv)[0])[0],
             filters, XML_FILTER))
 
@@ -250,19 +249,21 @@ class ConfigDialog(QtGui.QDialog, Ui_Settings):
         open a file browser to put a directory into the given line edit
         '''
         folder = str(
-            QtGui.QFileDialog.getExistingDirectory(
+            QtWidgets.QFileDialog.getExistingDirectory(
                 self, 'Ordner wählen', directory=line_edit.text()))
         # folder is '' if canceled
         if len(folder) > 0:
             line_edit.setText(folder)
 
 
-class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
+class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
     '''
     dialog for uploading shape files
     '''
 
-    def __init__(self, db_connection, schemata, upload_function, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+    def __init__(self, db_connection, schemata, upload_function, parent=None,
+                 on_finish=None, reserved_names=None, on_success=None,
+                 auto_args=None):
         super(UploadShapeDialog, self).__init__(parent)
         self.parent = parent
         self.on_finish = on_finish
@@ -335,7 +336,8 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
                 self.projection_combo.setCurrentIndex(idx)
             else:
                 self.projection_combo.addItem(srid)
-                self.projection_combo.setCurrentIndex(self.projection_combo.count() - 1)
+                self.projection_combo.setCurrentIndex(
+                    self.projection_combo.count() - 1)
         else:
             self.check_srid()
 
@@ -355,12 +357,13 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
 
     def set_shape(self):
         set_file(self, self.shapefile_edit, '*.shp')
-        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
+        shapefile = self.shapefile_edit.text().toUtf8()
         name = self.name_edit.text()
         if(len(name) == 0):
             try:
                 # take filename without extension as name, if none is set yet
-                self.name_edit.setText(os.path.splitext(os.path.split(shapefile)[1])[0].lower())
+                self.name_edit.setText(os.path.splitext(
+                    os.path.split(shapefile)[1])[0].lower())
             except:
                 pass
         self.analyse_projection_file()
@@ -369,11 +372,12 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
     upload the shape-file
     '''
     def upload(self):
-        projection = self.projection_combo.itemData(self.projection_combo.currentIndex()).toList()
+        projection = self.projection_combo.itemData(
+            self.projection_combo.currentIndex()).toList()
         srid, can_convert = projection[0].toInt()
         desc = str(projection[1].toString())
         proj_not_in_db = projection[2].toBool()
-        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
+        shapefile = self.shapefile_edit.text().toUtf8()
         self.schema = self.schema_combo.currentText()
 
         # take custom encoding if enabled else selected one in combo
@@ -384,24 +388,28 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
 
         self.name = self.name_edit.text()
         if not os.path.exists(shapefile):
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       "Die angegebene Datei existiert nicht!")
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!",
+                "Die angegebene Datei existiert nicht!")
             msgBox.exec_()
             return False
         if not validate_dbstring(self.name):
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, 'Warnung!',
-                                       'Der angegebene Name entspricht nicht\n' +
-                                       _fromUtf8('dem für Tabellennamen geforderten Muster\n') +
-                                       '"^[a-z_][a-z0-9_]*$"\n' +
-                                       '(nur Kleinbuchstaben, Ziffern und Unterstrich erlaubt)')
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Warnung!',
+                'Der angegebene Name entspricht nicht\n'
+                'dem für Tabellennamen geforderten Muster\n'
+                '"^[a-z_][a-z0-9_]*$"\n'
+                '(nur Kleinbuchstaben, Ziffern und Unterstrich erlaubt)')
             msgBox.exec_()
             return False
 
         if self.reserved_names:
             for r in self.reserved_names:
                 if self.name == r:
-                    msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                               "Der Name '{}' ist bereits vergeben!".format(self.name))
+                    msgBox = QtWidgets.QMessageBox(
+                        QtWidgets.QMessageBox.Warning, "Warnung!",
+                        "Der Name '{}' ist bereits vergeben!".format(self.name))
                     msgBox.exec_()
                     return False
 
@@ -423,14 +431,16 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
         return True
 
     '''
-    check for a .prj corresponding to the selected shapefile and get the description of the projection
+    check for a .prj corresponding to the selected shapefile and get
+    the description of the projection
     '''
     def analyse_projection_file(self):
-        shapefile = unicode(self.shapefile_edit.text().toUtf8(), encoding="UTF-8")
+        shapefile = self.shapefile_edit.text().toUtf8()
 
         if len(shapefile) == 0:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8("Sie müssen zunächst ein shapefile auswählen!"))
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!",
+                "Sie müssen zunächst ein shapefile auswählen!")
             msgBox.exec_()
             return
 
@@ -471,32 +481,39 @@ class UploadShapeDialog(QtGui.QDialog, Ui_Upload):
 
             # select if found
             if idx >= 0:
-                description = self.projection_combo.itemData(idx).toList()[1].toString()
+                description = \
+                    self.projection_combo.itemData(idx).toList()[1].toString()
                 message += '<b>- {}</b><br>'.format(description)
                 self.projection_combo.setCurrentIndex(idx)
 
-            # projection is not available yet -> check db if it is supported and add projection
+            # projection is not available yet -> check db if it is supported
+            # and add projection
             else:
                 entries = self.db_connection.get_spatial_ref(srid)
                 if len(entries) == 0:
-                    message += _fromUtf8('<br> <b> <i> srid {} wird nicht unterstützt!</i> </b><br>').format(srid)
+                    message += ('<br> <b> <i> srid {} wird nicht '
+                                'unterstützt!</i> </b><br>'.format(srid))
                 else:
                     projcs, geogcs = parse_projection_data(entries[0].srtext)
                     description = projcs if projcs else geogcs
                     message += '<b>- {}</b><br>'.format(description)
-                    message += _fromUtf8('<i> Projektion ist noch nicht in der Datenbank vorhanden, wird beim Hochladen hinzugefügt </i>'.format(description))
+                    message += ('<i> Projektion ist noch nicht in der Datenbank'
+                                'vorhanden, wird beim Hochladen hinzugefügt'
+                                '</i>'.format(description))
                     # add new srid to combobox and select it
                     self.projection_combo.addItem(
-                        _fromUtf8("{0} - {1}".format(srid, description)),
+                        "{0} - {1}".format(srid, description),
                         [srid, description, True])  # flag: not in database yet
-                    self.projection_combo.setCurrentIndex(len(self.projection_combo) - 1)
+                    self.projection_combo.setCurrentIndex(
+                        len(self.projection_combo) - 1)
 
         self.message_edit.append(message)
 
 
 class UploadAreaDialog(UploadShapeDialog):
     '''
-    dialog for uploading shapes to define areas, adds a second step (selecting identifiers) to UploadShapeDialog
+    dialog for uploading shapes to define areas, adds a second step
+    (selecting identifiers) to UploadShapeDialog
     '''
     def __init__(self, db_connection, schemata, parent=None, on_finish=None,
                  reserved_names=None, on_success=None, auto_args=None):
@@ -527,8 +544,8 @@ class UploadAreaDialog(UploadShapeDialog):
         if success:
             self.accept()
         else:
-            msgBox = QtGui.QMessageBox(
-                QtGui.QMessageBox.Warning, "Warnung!",
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             msgBox.exec_()
 
@@ -538,15 +555,19 @@ class UploadAreaDialog(UploadShapeDialog):
 
     def select_identifiers(self):
         '''
-        removes all elements of this dialog and creates comboboxes to ask for id and name of newly created zone
+        removes all elements of this dialog and creates comboboxes to
+        ask for id and name of newly created zone
         '''
         self.upload_frame.setDisabled(True)
-        for id, name, schema, can_be_deleted in self.db_connection.get_stations_available():
+        for id, name, schema, can_be_deleted in \
+            self.db_connection.get_stations_available():
             self.hst_combo.addItem(name, [id])
 
-        key_columns = self.db_connection.get_column_names(self.schema, self.name)
+        key_columns = self.db_connection.get_column_names(
+            self.schema, self.name)
         # remove column geom, this one shouldn't become pkey
-        key_columns = [col.column_name for col in key_columns if col.column_name != 'geom']
+        key_columns = [col.column_name for col in key_columns
+                       if col.column_name != 'geom']
         # selection for names is same list with leading empty element
         name_columns = [''] + copy.deepcopy(key_columns)
 
@@ -558,13 +579,18 @@ class UploadAreaDialog(UploadShapeDialog):
         self.cancel_button.setDisabled(True)
         self.OK_button.setDisabled(False)
 
+
 class UploadStationDialog(UploadShapeDialog):
     '''
     dialog for uploading shapes to add stations (no second step)
     '''
-    def __init__(self, db_connection, schemata, parent=None, on_finish=None, reserved_names=None, on_success=None, auto_args=None):
+    def __init__(self, db_connection, schemata, parent=None, on_finish=None,
+                 reserved_names=None, on_success=None, auto_args=None):
         upload_function = db_connection.add_stations
-        super(UploadStationDialog, self).__init__(db_connection, schemata, upload_function, parent=parent, on_finish=on_finish, reserved_names=reserved_names, on_success=on_success, auto_args=auto_args)
+        super(UploadStationDialog, self).__init__(
+            db_connection, schemata, upload_function, parent=parent,
+            on_finish=on_finish, reserved_names=reserved_names,
+            on_success=on_success, auto_args=auto_args)
         self.name_edit.setDisabled(True)
 
     def upload(self):
@@ -575,7 +601,8 @@ class UploadStationDialog(UploadShapeDialog):
             self.OK_button.clicked.connect(self.close)
             self.cancel_button.setDisabled(True)
 
-class SelectDialog(QtGui.QDialog):
+
+class SelectDialog(QtWidgets.QDialog):
     '''
     executable dialog for getting an item out of a combobox with the given items,
     creates mutliple comboboxes if items is list of lists
@@ -588,22 +615,23 @@ class SelectDialog(QtGui.QDialog):
         super(SelectDialog, self).__init__(parent)
         self.setWindowTitle(title)
 
-        layout = QtGui.QVBoxLayout(self)
-        spacer = QtGui.QSpacerItem(20, 20, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        layout = QtWidgets.QVBoxLayout(self)
+        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum,
+                                       QtWidgets.QSizePolicy.Expanding)
         self.combo_boxes = []
 
         for i, item in enumerate(items):
             if len(labels) > i:
-                layout.addWidget(QtGui.QLabel(labels[i]))
+                layout.addWidget(QtWidgets.QLabel(labels[i]))
 
-            combo_box = QtGui.QComboBox()
+            combo_box = QtWidgets.QComboBox()
             combo_box.addItems(item)
             layout.addWidget(combo_box)
             self.combo_boxes.append(combo_box)
             layout.addItem(spacer)
 
-        self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             QtCore.Qt.Horizontal, self)
 
         layout.addWidget(self.buttons)
@@ -615,9 +643,10 @@ class SelectDialog(QtGui.QDialog):
         return ret
 
 
-class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
+class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
     """
-    Dialog showing progress in textfield and bar after starting a certain task with run()
+    Dialog showing progress in textfield and bar after starting a
+    certain task with run()
     """
     def __init__(self, parent=None, auto_close=False):
         super(ProgressDialog, self).__init__(parent=parent)
@@ -637,7 +666,7 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
 
     def stopped(self):
         self.startButton.setEnabled(True)
-        self.cancelButton.setText(_fromUtf8('Schließen'))
+        self.cancelButton.setText('Schließen')
         self.cancelButton.clicked.connect(self.close)
         if self.auto_close:
             self.close()
@@ -645,8 +674,6 @@ class ProgressDialog(QtGui.QDialog, Ui_ProgressDialog):
     def show_status(self, text, progress=None):
         if hasattr(text, 'toLocal8Bit'):
             text = str(text.toLocal8Bit())
-        else:
-            text = _fromUtf8(text)
         self.log_edit.insertHtml(text + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
@@ -662,8 +689,10 @@ class IntersectionDialog(ProgressDialog):
     """
     ProgressDialog extented by an internal thread for intersecting
     """
-    def __init__(self, db_connection, schema, table, parent=None, auto_close=False):
-        super(IntersectionDialog, self).__init__(parent=parent, auto_close=auto_close)
+    def __init__(self, db_connection, schema, table, parent=None,
+                 auto_close=False):
+        super(IntersectionDialog, self).__init__(parent=parent,
+                                                 auto_close=auto_close)
         self.table = table
         self.schema = schema
         self.db_connection = db_connection
@@ -672,10 +701,12 @@ class IntersectionDialog(ProgressDialog):
 
         # we don't need a start button at all
         self.startButton.hide()
-        # we don't need a cancel button as well, you can't cancel the synchronous sql-queries (would mess up the database)
+        # we don't need a cancel button as well, you can't cancel the
+        # synchronous sql-queries (would mess up the database)
         self.cancelButton.hide()
 
-        self.connect(self.thread, QtCore.SIGNAL("progress(QString, QVariant)"), self.show_status)
+        self.connect(self.thread, QtCore.SIGNAL("progress(QString, QVariant)"),
+                     self.show_status)
         self.thread.started.connect(self.running)
         self.thread.finished.connect(self.stopped)
 
@@ -684,14 +715,17 @@ class IntersectionDialog(ProgressDialog):
 
     def run(self):
         self.thread.start()
-        #success, msg = self.db_conn.new_intersection(schema, table, on_progress=show_status)
+        #success, msg = self.db_conn.new_intersection(
+        # schema, table, on_progress=show_status)
         #if not success:
-            #msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Fehler", _fromUtf8(msg))
+            #msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
+            # "Fehler", _fromUtf8(msg))
             #msgBox.exec_()
 
     def stopped(self):
         super(IntersectionDialog, self).stopped()
         self.cancelButton.show()
+
 
 class ExecDialog(ProgressDialog):
     """
@@ -736,7 +770,8 @@ class ExecUploadShape(ExecDialog):
     def __init__(self, db_connection, schema, name, shapefile, upload_function,
                  srid=None, parent=None, on_finish=None, on_success=None,
                  auto_close=False, encoding=DEFAULT_ENCODING):
-        super(ExecUploadShape, self).__init__(parent=parent, auto_close=auto_close)
+        super(ExecUploadShape, self).__init__(parent=parent,
+                                              auto_close=auto_close)
         self.schema = schema
         self.name = name
         self.shapefile = shapefile
@@ -779,8 +814,10 @@ class ExecUploadShape(ExecDialog):
 
 
 class ExecDownloadResultsShape(ExecDialog):
-    def __init__(self, db_connection, schema, table, columns, filename, parent=None, auto_close=False):
-        super(ExecDownloadResultsShape, self).__init__(parent=parent, auto_close=auto_close)
+    def __init__(self, db_connection, schema, table, columns, filename,
+                 parent=None, auto_close=False):
+        super(ExecDownloadResultsShape, self).__init__(parent=parent,
+                                                       auto_close=auto_close)
         self.filename = filename
         self.db_connection = db_connection
         self.columns = columns
@@ -798,8 +835,10 @@ class ExecDownloadResultsShape(ExecDialog):
             on_progress=self.show_status)
 
 class ExecDownloadTableShape(ExecDialog):
-    def __init__(self, db_connection, schema, table, filename, columns=None, parent=None, auto_close=False):
-        super(ExecDownloadTableShape, self).__init__(parent=parent, auto_close=auto_close)
+    def __init__(self, db_connection, schema, table, filename, columns=None,
+                 parent=None, auto_close=False):
+        super(ExecDownloadTableShape, self).__init__(parent=parent,
+                                                     auto_close=auto_close)
         self.filename = filename
         self.db_connection = db_connection
         self.schema = schema
@@ -817,7 +856,7 @@ class ExecDownloadTableShape(ExecDialog):
             columns=self.columns, on_progress=self.show_status)
 
 
-class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
+class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
     def __init__(self, db_conn, parent=None):
         super(DownloadTablesDialog, self).__init__(parent)
         self.setupUi(self)
@@ -825,7 +864,7 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
         self.cancel_button.clicked.connect(self.close)
         self.db_conn = db_conn
 
-        header = QtGui.QTreeWidgetItem(["Kategorie","Beschreibung"])
+        header = QtWidgets.QTreeWidgetItem(["Kategorie","Beschreibung"])
         self.tables_to_download_tree.setHeaderItem(header)
         self.tables_to_download_tree.itemClicked.connect(check_status)
 
@@ -839,33 +878,39 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
         for id, name, schema, tablename, category in tables_to_download:
             self.schemata[tablename] = schema
             if prev_cat != category:
-                cat_item = QtGui.QTreeWidgetItem(self.tables_to_download_tree, [_fromUtf8(category)])
-                cat_item.setCheckState(0,QtCore.Qt.Unchecked)
-                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                cat_item = QtWidgets.QTreeWidgetItem(
+                    self.tables_to_download_tree,
+                    [category])
+                cat_item.setCheckState(0, QtCore.Qt.Unchecked)
+                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                                  QtCore.Qt.ItemIsEnabled)
                 prev_cat = category
 
-            col_item = QtGui.QTreeWidgetItem(cat_item, [_fromUtf8(tablename)])
+            col_item = QtWidgets.QTreeWidgetItem(cat_item, [tablename])
             col_item.setCheckState(0,QtCore.Qt.Unchecked)
-            col_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            col_item.setText(1, _fromUtf8(name))
+            col_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                              QtCore.Qt.ItemIsEnabled)
+            col_item.setText(1, name)
 
         self.tables_to_download_tree.resizeColumnToContents(0)
 
         self.show()
 
     def download(self):
-        directory = unicode(self.dir_edit.text().toUtf8(), encoding="UTF-8")
+        directory = self.dir_edit.text().toUtf8()
         if not directory:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8('Sie müssen ein Zielverzeichnis wählen!'))
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!",
+                'Sie müssen ein Zielverzeichnis wählen!')
             msgBox.exec_()
             return
 
         selected_tables = get_selected(self.tables_to_download_tree)
 
         if len(selected_tables) == 0:
-            msg_box = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       _fromUtf8('Sie müssen mindestens eine Tabelle auswählen'))
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!",
+                'Sie müssen mindestens eine Tabelle auswählen')
             msg_box.exec_()
             return
 
@@ -874,7 +919,9 @@ class DownloadTablesDialog(QtGui.QDialog, Ui_DownloadDataDialog):
             filename = os.path.join(str(directory), table + '.shp')
             schema = self.schemata[table]
 
-            diag = ExecDownloadTableShape(self.db_conn, schema, table, filename, parent=self, auto_close=True)
+            diag = ExecDownloadTableShape(
+                self.db_conn, schema, table, filename,
+                parent=self, auto_close=True)
             diag.exec_()
 
         self.close()

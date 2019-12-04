@@ -55,7 +55,7 @@ class Config(Borg):
         tree = etree.parse(filename)
         self.settings = copy.deepcopy(setting_struct)
         f_set = xml_to_dict(tree.getroot())
-        for key, value in f_set.iteritems():
+        for key, value in f_set.items():
             self.settings[key].update(value)
 
     def write(self, filename=None):

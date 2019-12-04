@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from verschneidungstool.control import MainWindow
 import sys
 import os
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 from verschneidungstool.config import Config, DEFAULT_SRID
 
 config = Config()
@@ -84,7 +84,7 @@ def startmain():
         print('Für den Download von Ergebnissen, müssen Schema und Tabellenname der Aggregationsstufe, ein Dateiname und das Jahr der Ergebnisse angegeben werden.')
         exit(1)
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     mainwindow = MainWindow()
     mainwindow.show()
     mainwindow.exec_arguments(arguments)

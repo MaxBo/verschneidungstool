@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import psycopg2
-from extractiontools.connection import Connection
+from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 import tempfile, os, shutil, re
-import unicodecsv as csv
+import csv
 import xlwt
 
 config = Config()
+
 
 class DBConnection(object):
     def __init__(self, login):
@@ -82,7 +83,7 @@ class DBConnection(object):
             col_avail = self.fetch(sql_col_avail)
             self.colums_available = {}
             for record in col_avail:
-                if not (self.colums_available.has_key(record.table_type)):
+                if record.table_type not in self.colums_available:
                     self.colums_available[record.table_type] = []
                 self.colums_available[record.table_type].append({'name': record.column, 'description': record.description})
 
