@@ -278,7 +278,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
         # add available projections to combobox
         for p in projections_available:
             self.projection_combo.addItem(
-                _fromUtf8("{0} - {1}".format(p.srid, p.description)),
+                "{0} - {1}".format(p.srid, p.description),
                 # data: srid, description, not in database
                 [p.srid, p.description, False])
 
@@ -327,7 +327,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             idx = -1
             # find srid in the available projections
             for i in range(self.projection_combo.count()):
-                s, c = self.projection_combo.itemData(i).toList()[0].toInt()
+                s, c = self.projection_combo.itemData(i)[0]
                 if s == int(srid):
                     idx = i
                     break
@@ -357,7 +357,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
 
     def set_shape(self):
         set_file(self, self.shapefile_edit, '*.shp')
-        shapefile = self.shapefile_edit.text().toUtf8()
+        shapefile = self.shapefile_edit.text()
         name = self.name_edit.text()
         if(len(name) == 0):
             try:
@@ -373,11 +373,11 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
     '''
     def upload(self):
         projection = self.projection_combo.itemData(
-            self.projection_combo.currentIndex()).toList()
-        srid, can_convert = projection[0].toInt()
-        desc = str(projection[1].toString())
-        proj_not_in_db = projection[2].toBool()
-        shapefile = self.shapefile_edit.text().toUtf8()
+            self.projection_combo.currentIndex())
+        srid, can_convert = projection[0]
+        desc = str(projection[1])
+        proj_not_in_db = projection[2]
+        shapefile = self.shapefile_edit.text()
         self.schema = self.schema_combo.currentText()
 
         # take custom encoding if enabled else selected one in combo
@@ -435,8 +435,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
     the description of the projection
     '''
     def analyse_projection_file(self):
-        shapefile = self.shapefile_edit.text().toUtf8()
-
+        shapefile = self.shapefile_edit.text()
         if len(shapefile) == 0:
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
@@ -474,7 +473,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             idx = -1
             # find srid in the available projections
             for i in range(self.projection_combo.count()):
-                s, c = self.projection_combo.itemData(i).toList()[0].toInt()
+                s, c = self.projection_combo.itemData(i)[0]
                 if s == srid:
                     idx = i
                     break
@@ -482,7 +481,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             # select if found
             if idx >= 0:
                 description = \
-                    self.projection_combo.itemData(idx).toList()[1].toString()
+                    self.projection_combo.itemData(idx)[1]
                 message += '<b>- {}</b><br>'.format(description)
                 self.projection_combo.setCurrentIndex(idx)
 
@@ -535,7 +534,7 @@ class UploadAreaDialog(UploadShapeDialog):
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
         idx = self.hst_combo.currentIndex()
-        hst_id = self.hst_combo.itemData(idx).toList()[0].toInt()[0]
+        hst_id = self.hst_combo.itemData(idx)[0]
 
         success, msg = self.db_connection.set_zone(
             self.schema, self.name, hst_id,
@@ -551,7 +550,7 @@ class UploadAreaDialog(UploadShapeDialog):
 
     def set_default_stops(self):
         idx = self.hst_combo.currentIndex()
-        def_stop_id = self.hst_combo.itemData(idx).toList()[0].toInt()
+        def_stop_id = self.hst_combo.itemData(idx)[0]
 
     def select_identifiers(self):
         '''
@@ -678,7 +677,7 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
             if isinstance(progress, QtCore.QVariant):
-                progress = progress.toInt()[0]
+                progress = progress[0]
             self.progress_bar.setValue(progress)
 
     # task needs to be overridden
@@ -719,7 +718,7 @@ class IntersectionDialog(ProgressDialog):
         # schema, table, on_progress=show_status)
         #if not success:
             #msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
-            # "Fehler", _fromUtf8(msg))
+            # "Fehler", msg)
             #msgBox.exec_()
 
     def stopped(self):
@@ -897,7 +896,7 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
         self.show()
 
     def download(self):
-        directory = self.dir_edit.text().toUtf8()
+        directory = self.dir_edit.text()
         if not directory:
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",

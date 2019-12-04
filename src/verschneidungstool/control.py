@@ -242,16 +242,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def remove_area(self):
         name = self.layer_combo.currentText()
         selected_data = self.layer_combo.itemData(
-            self.layer_combo.currentIndex()).toList()
-        can_be_deleted = selected_data[3].toBool()
+            self.layer_combo.currentIndex())
+        can_be_deleted = selected_data[3]
         # do nothing, if area can't be deleted (you shouldn't get here anyway,
         # because button is disabled)
         if not can_be_deleted:
             return
 
-        id, c = selected_data[0].toInt()
-        schema = selected_data[1].toString()
-        table_name = selected_data[2].toString()
+        id, c = selected_data[0]
+        schema = selected_data[1]
+        table_name = selected_data[2]
         success, msg= self.db_conn.drop_area(id, table_name, schema)
         if success:
             msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Erfolg",
@@ -356,7 +356,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         station_idx = self.stations_combo.currentIndex()
         station_table = self.stations_combo.currentText()
-        station_schema = self.stations_combo.itemData(station_idx).toList()[1]
+        station_schema = self.stations_combo.itemData(station_idx)[1]
         # set selected stations in db
         self.db_conn.set_current_stations(station_table, station_schema)
 
@@ -408,8 +408,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         selected_area = self.layer_combo.currentText()
         idx = self.layer_combo.currentIndex()
-        selected_data = self.layer_combo.itemData(idx).toList()
-        check_last_calculation = selected_data[7].toBool()
+        selected_data = self.layer_combo.itemData(idx)
+        check_last_calculation = selected_data[7]
 
         if check_last_calculation and not last_calc[0].finished:
             msgBox = QtWidgets.QMessageBox(
@@ -446,7 +446,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             year = str(self.year_combo.currentText())
             station_idx = self.stations_combo.currentIndex()
             station_table = self.stations_combo.currentText()
-            station_schema = self.stations_combo.itemData(station_idx).toList()[1]
+            station_schema = self.stations_combo.itemData(station_idx)[1]
 
         else:
             selected_area = table = auto_args['table_name']
@@ -491,20 +491,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if not auto_args:
             if self.csv_radio_button.isChecked():
-                filename = QtGui.QFileDialog.getSaveFileName(
-                    self, _fromUtf8('Speichern unter'), 'results.csv', '*.csv')
+                filename = QtWidgets.QFileDialog.getSaveFileName(
+                    self, 'Speichern unter', 'results.csv', '*.csv')
                 if len(filename) > 0:
                     csv = True
 
             elif self.excel_radio_button.isChecked():
-                filename = QtGui.QFileDialog.getSaveFileName(
-                    self, _fromUtf8('Speichern unter'), 'results.xls', '*.xls')
+                filename = QtWidgets.QFileDialog.getSaveFileName(
+                    self, 'Speichern unter', 'results.xls', '*.xls')
                 if len(filename) > 0:
                     xls = True
 
             elif self.shape_radio_button.isChecked():
-                filename = QtGui.QFileDialog.getSaveFileName(
-                    self, _fromUtf8('Speichern unter'), 'results.shp', '*.shp')
+                filename = QtWidgets.QFileDialog.getSaveFileName(
+                    self, 'Speichern unter', 'results.shp', '*.shp')
                 if len(filename) > 0:
                     shp = True
 

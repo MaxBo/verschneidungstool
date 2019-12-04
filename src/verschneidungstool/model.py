@@ -43,7 +43,8 @@ class DBConnection(object):
 
     def get_areas_available(self):
         sql = """
-        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops, results_schema, results_table, check_last_calculation
+        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops,
+        results_schema, results_table, check_last_calculation
         FROM meta.areas_available
         ORDER BY id
         """
@@ -85,7 +86,8 @@ class DBConnection(object):
             for record in col_avail:
                 if record.table_type not in self.colums_available:
                     self.colums_available[record.table_type] = []
-                self.colums_available[record.table_type].append({'name': record.column, 'description': record.description})
+                self.colums_available[record.table_type].append({
+                    'name': record.column, 'description': record.description})
 
         sql_cat = """
         SELECT tc.name
@@ -115,10 +117,12 @@ class DBConnection(object):
 
         last = self.get_last_calculated()
         if schema == last[0].schema and table == last[0].table_name:
-            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'.format(schema=schema, table=table) +
-                    'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n' +
-                    'Bitte führen Sie zunächst eine Verschneidung mit einer\n' +
-                    'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
+            return False,
+        ('{schema}.{table} kann nicht gelöscht werden,\n'
+         .format(schema=schema, table=table) +
+         'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n'
+         'Bitte führen Sie zunächst eine Verschneidung mit einer\n'
+         'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
         # remove row from available schemata
         sql_remove = """
         DELETE FROM meta.areas_available
@@ -131,9 +135,11 @@ class DBConnection(object):
         try:
             self.execute(sql_remove.format(id=id))
             self.execute(sql_drop.format(schema=schema, table=table))
-            return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
+            return True, 'Löschen von {schema}.{table} erfolgreich'.format(
+                schema=schema, table=table)
         except:
-            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
+            return False, ('Ein datenbankinterner Fehler ist beim '
+                           'Löschen aufgetreten')
 
     def drop_stations(self, id, table, schema):
 
@@ -143,7 +149,9 @@ class DBConnection(object):
 
         check = self.fetch(sql_check.format(hst_id=id))
         if len(check) > 0:
-            msg = '{schema}.{table} kann nicht gelöscht werden, da die Aggregationsstufen \n'.format(schema=schema, table=table)
+            msg = ('{schema}.{table} kann nicht gelöscht werden, '
+                   'da die Aggregationsstufen \n'
+                   .format(schema=schema, table=table))
             for c in check:
                 msg += ' - ' + c.area_name + '\n'
             msg += 'darauf verweisen!'
@@ -151,10 +159,13 @@ class DBConnection(object):
 
         last = self.get_last_calculated()
         if schema == last[0].hst_schema and table == last[0].hst_name:
-            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'.format(schema=schema, table=table) +
-                    'da die letzte Verschneidung mit diesen Haltestellen erfolgte. \n\n' +
-                    'Bitte führen Sie zunächst eine Verschneidung mit \n' +
-                    'anderen Haltestellen durch, bevor Sie diese löschen.')
+            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'
+                           .format(schema=schema, table=table) +
+                           'da die letzte Verschneidung mit diesen'
+                           'Haltestellen erfolgte. \n\n'
+                           'Bitte führen Sie zunächst eine Verschneidung mit \n'
+                           'anderen Haltestellen durch, bevor Sie'
+                           'diese löschen.')
         # remove row from available schemata
         sql_remove = """
         DELETE FROM meta.haltestellen_available
@@ -167,9 +178,11 @@ class DBConnection(object):
         try:
             self.execute(sql_remove.format(id=id))
             self.execute(sql_drop.format(table=table, schema=schema))
-            return True, 'Löschen von {schema}.{table} erfolgreich'.format(schema=schema, table=table)
+            return (True, 'Löschen von {schema}.{table} erfolgreich'
+                    .format(schema=schema, table=table))
         except:
-            return False, 'Ein datenbankinterner Fehler ist beim Löschen aufgetreten'
+            return (False, 'Ein datenbankinterner Fehler ist beim '
+                    'Löschen aufgetreten')
 
     def get_projections_available(self):
         sql = """
@@ -221,12 +234,14 @@ class DBConnection(object):
         WHERE  i.indrelid = '{schema}.{table}'::regclass
         AND    i.indisprimary;
         """
-        ret = [a.attname for a in self.fetch(sql.format(schema=schema, table=table))]
+        ret = [a.attname for a in self.fetch(sql.format(
+            schema=schema, table=table))]
         return ret
 
     '''
-    set the columns with the zone-id, zone-name and default_stops for the given area table
-    makes an entry in the areas_available table, that this column is preferred as pkey
+    set the columns with the zone-id, zone-name and default_stops for the given
+    area table makes an entry in the areas_available table, that this column is
+    preferred as pkey
     returns True if successful
     returns False if not (e.g. column isn't unique, table doesn't exist)
     '''
@@ -241,7 +256,8 @@ class DBConnection(object):
 
         pkey = self.get_pkey(schema, table)
         if len(pkey) != 1:
-            return False, 'Kein eindeutiger primary key in hochgeladener Tabelle vorhanden!'
+            return (False, 'Kein eindeutiger primary key in hochgeladener'
+                    'Tabelle vorhanden!')
         pkey = pkey[0]
         if not zone_id_column:
             zone_id_column = pkey
@@ -250,20 +266,24 @@ class DBConnection(object):
         else:
             # set custom zone-id column to unique to check if values are unique
             try:
-                self.execute(sql_unique.format(schema=schema, table=table, column=zone_id_column))
+                self.execute(sql_unique.format(schema=schema,
+                                               table=table,
+                                               column=zone_id_column))
             # catches all exception (e.g. if table doesn't exist)
             except Exception as e:
                 return False, e
 
         sql_update = """
         UPDATE meta.areas_available
-        SET pkey='{pkey}', zone_id='{zone_id}', zone_name='{zone_name}', default_stops={hst_id}
+        SET pkey='{pkey}', zone_id='{zone_id}', zone_name='{zone_name}',
+        default_stops={hst_id}
         WHERE schema='{schema}'
         AND table_name='{table}'
         """
         # update the meta table
         self.execute(sql_update.format(pkey=pkey, zone_id=zone_id_column,
-                                       zone_name=zone_name_column, hst_id=hst_id,
+                                       zone_name=zone_name_column,
+                                       hst_id=hst_id,
                                        schema=schema, table=table))
         return True, ''
 
@@ -275,8 +295,10 @@ class DBConnection(object):
     @param shapefile - the path to the shapefile to upload
     @param process - QtCore.QProcess, process provided to upload shape into db
     @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
-    @param on_exit - optional, additional callback, called when process is done, expects exit-code and -status as params
+    @param on_progress - optional, method expecting a string as a parameter
+    and an optional progress value (from 0 to 100)
+    @param on_exit - optional, additional callback, called when process is done,
+    expects exit-code and -status as params
     @param projection - optional, srid of the projection
     @param encoding - optional, encoding of the shapefile
     '''
@@ -286,25 +308,32 @@ class DBConnection(object):
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
 
         if not os.path.exists(psql_path):
-            on_progress(u'<b>Die angegebene <i>psql_path.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            on_progress(u'<b>Die angegebene <i>psql_path.exe</i> wurde '
+                        'nicht gefunden. </br> Bitte prüfen Sie die '
+                        'Einstellungen!</b>')
             return
 
         if not os.path.exists(shp2pgsql_path):
-            on_progress(u'<b>Die angegebene <i>shp2pgsql_path.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            on_progress(u'<b>Die angegebene <i>shp2pgsql_path.exe</i> wurde '
+                        'nicht gefunden. </br> Bitte prüfen Sie die '
+                        'Einstellungen!</b>')
             return
 
         options = '-c -g geom -I'
         self.on_progress = on_progress
         target_srid = config.settings['db_config']['srid']
         if srid:
-            options += ' -s {sourcesrid}:{target_srid}'.format(sourcesrid=srid,
-                                                               target_srid=target_srid)
+            options += ' -s {sourcesrid}:{target_srid}'.format(
+                sourcesrid=srid, target_srid=target_srid)
         options += ' -W {}'.format(encoding)
         #put tmp file in folder where this script is located
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
-        shp2pgsql_cmd = u'"{executable}" {options} "{input_file}" {schema}.{table}"'.format(
-            executable=shp2pgsql_path, options=options, input_file=shapefile, schema=schema, table=name)
+        shp2pgsql_cmd = (u'"{executable}" {options} "{input_file}" '
+                         '{schema}.{table}"'.format(
+                             executable=shp2pgsql_path, options=options,
+                             input_file=shapefile, schema=schema, table=name)
+                         )
 
         def finished(exit_code, exit_status):
             on_exit(exit_code, exit_status)
@@ -329,21 +358,25 @@ class DBConnection(object):
         def upload_to_db(exit_code, exit_status):
             if(exit_code != 0):
                 if(self.on_progress):
-                    self.on_progress('<b>Konvertierung nicht erfolgreich </b><br>')
+                    self.on_progress('<b>Konvertierung nicht '
+                                     'erfolgreich </b><br>')
                 return
             if self.on_progress:
-                self.on_progress('<b>Konvertierung erfolgreich. Starte Upload... </b><br>', 50)
+                self.on_progress('<b>Konvertierung erfolgreich. '
+                                 'Starte Upload... </b><br>', 50)
 
             db_config = config.settings['db_config']
-            # you can't pass a password to the command-line psql.exe -> set environment variable instead
+            # you can't pass a password to the command-line psql.exe
+            # -> set environment variable instead
             sys_env = QtCore.QProcessEnvironment.systemEnvironment()
             sys_env.insert("PGPASSWORD", db_config['password'])
             process.setProcessEnvironment(sys_env)
 
-            psql_cmd = u'"{executable}" -d {database} -a -h {host} -p {port} -U {user} -w -f "{input_file}"'.format(
-                executable=psql_path, database=db_config['db_name'],
-                host=db_config['host'], port=db_config['port'],
-                user=db_config['username'], input_file=tmp_file)
+            psql_cmd = (u'"{executable}" -d {database} -a -h {host} -p {port}'
+                        ' -U {user} -w -f "{input_file}"'.format(
+                            executable=psql_path, database=db_config['db_name'],
+                            host=db_config['host'], port=db_config['port'],
+                            user=db_config['username'], input_file=tmp_file))
 
             process.finished.connect(finished)
             process.start(psql_cmd)
@@ -359,16 +392,19 @@ class DBConnection(object):
         conversion_process.start(shp2pgsql_cmd)
 
     '''
-    add an aggregation area based on a given shapefile to the database, monitor the progress
+    add an aggregation area based on a given shapefile to the database, monitor
+    the progress
 
     @param schema - the schema the table will be created in
     @param name - the name the area (= the table) gets
     @param shapefile - the path to the shapefile to upload
     @param process - QtCore.QProcess, process provided to upload shape into db
     @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
+    @param on_progress - optional, method expecting a string as a parameter and
+    an optional progress value (from 0 to 100)
     @param on_finish - optional, additional callback, called when run is finished
-    @param on_success - optional, additional callback, called when run was successful
+    @param on_success - optional, additional callback, called when run was
+    successful
     @param projection - optional, srid of the projection
     '''
     def add_area(self, schema, name, shapefile, process, conversion_process,
@@ -388,14 +424,16 @@ class DBConnection(object):
                 ALTER TABLE {schema}.{table}
                 OWNER TO verkehr;
                 """
-                self.execute(sql.format(area_name=name, schema=schema, table=name))
+                self.execute(sql.format(
+                    area_name=name, schema=schema, table=name))
                 self.execute(sql_alter.format(schema=schema, table=name))
                 if self.on_progress:
                     self.on_progress('<b>Upload erfolgreich</b><br>')
                 self.on_progress = None
             if on_finish:
                 on_finish()
-            # on_success hast to be called after on_finish (this one is called on error as well)
+            # on_success hast to be called after on_finish (this one is called
+            # on error as well)
             if exit_code == 0 and on_success:
                 on_success()
 
@@ -411,9 +449,12 @@ class DBConnection(object):
     @param shapefile - the path to the shapefile to upload
     @param process - QtCore.QProcess, process provided to upload shape into db
     @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter and an optional progress value (from 0 to 100)
-    @param on_finish - optional, additional callback, called when run is finished
-    @param on_success - optional, additional callback, called when run was successful
+    @param on_progress - optional, method expecting a string as a parameter
+    and an optional progress value (from 0 to 100)
+    @param on_finish - optional, additional callback, called when run
+    is finished
+    @param on_success - optional, additional callback, called when run was
+    successful
     @param projection - optional, srid of the projection
     '''
     def add_stations(self, schema, name, shapefile, process, conversion_process,
@@ -440,7 +481,8 @@ class DBConnection(object):
                 self.on_progress = None
             if on_finish:
                 on_finish()
-            # on_success hast to be called after on_finish (this one is called on error as well)
+            # on_success hast to be called after on_finish (this one is
+            # called on error as well)
             if exit_code == 0 and on_success:
                 on_success()
 
@@ -475,7 +517,8 @@ class DBConnection(object):
                 try:
                     row = fetch(sql_pkey.format(schema=schema, table=table))[0]
                 except IndexError:
-                    msg = 'Tabelle {schema}.{table}.\nnicht in der Datenbank vorhanden.'.format(schema=schema, table=table)
+                    msg = ('Tabelle {schema}.{table}.\nnicht in der Datenbank '
+                           'vorhanden.'.format(schema=schema, table=table))
                     self.emit( signal, msg, 0)
                     #return
                     raise AttributeError(msg)
@@ -487,7 +530,9 @@ class DBConnection(object):
                 queries = fetch(sql_queries)
 
                 if (not pkey) or (not zone_id):
-                    msg = 'Fehlerhafter Eintrag für {schema}.{table}.\nEs ist keine zone_id oder kein primary key angegeben.'.format(schema=schema, table=table)
+                    msg = ('Fehlerhafter Eintrag für {schema}.{table}.\nEs '
+                           'ist keine zone_id oder kein primary key angegeben.'
+                           .format(schema=schema, table=table))
                     self.emit( signal, msg, 0)
                     return
 
@@ -595,9 +640,10 @@ class DBConnection(object):
 
     def force_reset_calc(self):
         '''
-        resets the database entry for locking calculations to be able to start new
-        last row is identified by max id
-        warning: if a calculation is still running, new calculation may result in errors
+        resets the database entry for locking calculations to be able to start
+        new last row is identified by max id
+        warning: if a calculation is still running, new calculation may result
+        in errors
         '''
         sql = """
         UPDATE meta.scenario
@@ -620,7 +666,8 @@ class DBConnection(object):
             columns = '*'
 
         with open(filename, 'w') as fileobject:
-            self.copy_expert(sql.format(columns=columns, table=table, schema=schema), fileobject)
+            self.copy_expert(sql.format(
+                columns=columns, table=table, schema=schema), fileobject)
 
     def results_to_csv(self, schema, table, columns, filename):
         columns = ['vz_id', 'zone_name'] + columns
@@ -644,13 +691,16 @@ class DBConnection(object):
                     sheet.write(r, c, val)
             wbk.save(filename)
 
-    def db_table_to_shape_file(self, schema, table, process, filename, columns=None,
-                               on_progress=None, srid=None, on_finish=None):
+    def db_table_to_shape_file(self, schema, table, process, filename,
+                               columns=None,  on_progress=None,
+                               srid=None, on_finish=None):
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
 
         if not os.path.exists(pgsql2shp_path):
-            on_progress(u'<b>Die angegebene <i>pgsql2shp.exe</i> wurde nicht gefunden. </br> Bitte prüfen Sie die Einstellungen!</b>')
+            on_progress(u'<b>Die angegebene <i>pgsql2shp.exe</i> wurde nicht '
+                        'gefunden. </br> Bitte prüfen Sie die Einstellungen!'
+                        '</b>')
             return
 
         if columns and len(columns) > 0:
@@ -661,16 +711,18 @@ class DBConnection(object):
 
         sql = 'SELECT {columns} FROM {schema}.{table}'
 
-        pgsql2shp_cmd = u'"{executable}" -f "{filename}" -h {host} -p {port} -u {user} -P {password} {database} "{sql}"'.format(
-            executable=pgsql2shp_path,
-            filename=filename,
-            database=db_config['db_name'],
-            host=db_config['host'],
-            port=db_config['port'],
-            user=db_config['username'],
-            password=db_config['password'],
-            sql=sql.format(columns=columns, schema=schema, table=table)
-        )
+        pgsql2shp_cmd = (u'"{executable}" -f "{filename}" -h {host} -p {port} '
+                         '-u {user} -P {password} {database} "{sql}"'.format(
+                             executable=pgsql2shp_path,
+                             filename=filename,
+                             database=db_config['db_name'],
+                             host=db_config['host'],
+                             port=db_config['port'],
+                             user=db_config['username'],
+                             password=db_config['password'],
+                             sql=sql.format(columns=columns,
+                                            schema=schema, table=table)
+        ))
 
         # call callback with standard error and output
         def progress():
@@ -683,7 +735,8 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
-        on_progress('Konvertiere {schema}.{table} in {filename}'.format(schema=schema, table=table, filename=filename))
+        on_progress('Konvertiere {schema}.{table} in {filename}'.format(
+            schema=schema, table=table, filename=filename))
         process.start(pgsql2shp_cmd)
 
 
@@ -696,7 +749,8 @@ class DBConnection(object):
 
 
 '''
-parse and return the complete data, projcs and geogcs description out of a given .prj file
+parse and return the complete data, projcs and geogcs description out of a
+given .prj file
 '''
 def parse_projection_file(filename):
     with open(filename) as f:
