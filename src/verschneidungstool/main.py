@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from verschneidungstool.control import MainWindow
 import sys
 import os
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets, QtCore
 from verschneidungstool.config import Config, DEFAULT_SRID
 
 config = Config()
@@ -84,7 +84,9 @@ def startmain():
         print('Für den Download von Ergebnissen, müssen Schema und Tabellenname der Aggregationsstufe, ein Dateiname und das Jahr der Ergebnisse angegeben werden.')
         exit(1)
 
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     app = QtWidgets.QApplication(sys.argv)
+    app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
     mainwindow = MainWindow()
     mainwindow.show()
     mainwindow.exec_arguments(arguments)

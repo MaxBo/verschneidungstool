@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5 import QtGui, QtCore, uic, QtWidgets, Qt
 import os
 
 from verschneidungstool.main_view import Ui_MainWindow

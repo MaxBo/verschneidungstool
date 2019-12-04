@@ -25,12 +25,14 @@ setting_struct = {
 
 
 '''
-Borg pattern, all subclasses share same state (similar to singleton, but without single identity)
+Borg pattern, all subclasses share same state (similar to singleton,
+but without single identity)
 '''
 class Borg:
     _shared_state = {}
     def __init__(self):
         self.__dict__ = self._shared_state
+
 
 '''
 holds informations about the environment and database settings
@@ -91,7 +93,8 @@ def dict_to_xml(element, dictionary):
 def xml_to_dict(tree, represented_as_arrays=[]):
     '''
     convert a xml tree to a dictionary
-    represented_as_arrays: list of Strings, all XML Tags, which should be handled as arrays
+    represented_as_arrays: list of Strings, all XML Tags, which should be handled
+    as arrays
     '''
     if tree.tag in represented_as_arrays:
         value = []
