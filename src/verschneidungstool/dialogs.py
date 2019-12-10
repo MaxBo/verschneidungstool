@@ -115,7 +115,7 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER],
         except:
             directory = ''
 
-    filename = QtWidgets.QFileDialog.getOpenFileName(
+    filename, ext = QtWidgets.QFileDialog.getOpenFileName(
             parent, 'Datei wählen',
             directory,
             ';;'.join(filters),
@@ -374,9 +374,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
     def upload(self):
         projection = self.projection_combo.itemData(
             self.projection_combo.currentIndex())
-        srid, can_convert = projection[0]
-        desc = str(projection[1])
-        proj_not_in_db = projection[2]
+        srid, desc, proj_not_in_db = projection
         shapefile = self.shapefile_edit.text()
         self.schema = self.schema_combo.currentText()
 
@@ -671,8 +669,8 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
             self.close()
 
     def show_status(self, text, progress=None):
-        if hasattr(text, 'toLocal8Bit'):
-            text = text.toLocal8Bit()
+        #if hasattr(text, 'toLocal8Bit'):
+            #text = text.toLocal8Bit()
         self.log_edit.insertHtml(str(text) + '<br>')
         self.log_edit.moveCursor(QtGui.QTextCursor.End)
         if progress:
@@ -680,9 +678,15 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
                 progress = progress[0]
             self.progress_bar.setValue(progress)
 
+    def show_error(self, text):
+        self.show_status( f'<span style="color:red;">Fehler: {text}</span>')
+        self.progress_bar.setStyleSheet(
+            'QProgressBar::chunk { background-color: red; }')
+
     # task needs to be overridden
     def run(self):
         pass
+
 
 class IntersectionDialog(ProgressDialog):
     """
@@ -704,8 +708,8 @@ class IntersectionDialog(ProgressDialog):
         # synchronous sql-queries (would mess up the database)
         self.cancelButton.hide()
 
-        self.connect(self.thread, QtCore.SIGNAL("progress(QString, QVariant)"),
-                     self.show_status)
+        self.thread.progress.connect(self.show_status)
+        self.thread.error.connect(self.show_error)
         self.thread.started.connect(self.running)
         self.thread.finished.connect(self.stopped)
 
@@ -832,6 +836,7 @@ class ExecDownloadResultsShape(ExecDialog):
         self.db_connection.results_to_shape( self.schema, self.table,
             self.columns, self.process, self.filename,
             on_progress=self.show_status)
+
 
 class ExecDownloadTableShape(ExecDialog):
     def __init__(self, db_connection, schema, table, filename, columns=None,

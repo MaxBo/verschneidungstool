@@ -254,12 +254,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         table_name = selected_data[2]
         success, msg= self.db_conn.drop_area(id, table_name, schema)
         if success:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Erfolg",
-                                       msg)
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Erfolg", msg)
             msgBox.exec_()
         else:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       msg)
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!", msg)
             msgBox.exec_()
 
         self.render_areas()
@@ -279,14 +279,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         schema = selected_data[1]
         id = selected_data[0]
         table_name = self.stations_combo.currentText()
-        success, msg= self.db_conn.drop_stations(id, table_name, schema)
+        success, msg = self.db_conn.drop_stations(id, table_name, schema)
         if success:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Erfolg",
-                                       msg)
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Erfolg", msg)
             msgBox.exec_()
         else:
-            msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning, "Warnung!",
-                                       msg)
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Warnung!", msg)
             msgBox.exec_()
 
         self.render_stations()

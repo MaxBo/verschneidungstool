@@ -29,7 +29,6 @@ class DBConnection(object):
             cursor = self.conn.cursor()
             cursor.copy_expert(sql, fileobject)
 
-
     def execute(self, sql):
         with Connection(login=self.login) as conn:
             self.conn = conn
@@ -38,7 +37,7 @@ class DBConnection(object):
                 cursor.execute(sql)
             except psycopg2.ProgrammingError as e:
                 raise psycopg2.ProgrammingError(
-                    os.linesep.join((sql, e.message)))
+                    os.linesep.join((sql, str(e))))
             conn.commit()
 
     def get_areas_available(self):
@@ -496,6 +495,8 @@ class DBConnection(object):
         execute = self.execute
 
         class Intersection(QtCore.QThread):
+            progress = QtCore.pyqtSignal(str, int)
+            error = QtCore.pyqtSignal(str)
             def __init__(self):
                 QtCore.QThread.__init__(self)
 
@@ -511,17 +512,14 @@ class DBConnection(object):
                 sql_queries = """
                 SELECT * FROM meta.queries ORDER BY id;
                 """
-                progress_signal = 'progress(QString, QVariant)'
-                signal = QtCore.SIGNAL(progress_signal)
 
                 try:
                     row = fetch(sql_pkey.format(schema=schema, table=table))[0]
                 except IndexError:
                     msg = ('Tabelle {schema}.{table}.\nnicht in der Datenbank '
                            'vorhanden.'.format(schema=schema, table=table))
-                    self.emit( signal, msg, 0)
-                    #return
-                    raise AttributeError(msg)
+                    self.error.emit(msg)
+                    return
 
                 pkey = row.pkey
                 zone_name = row.zone_name
@@ -533,10 +531,10 @@ class DBConnection(object):
                     msg = ('Fehlerhafter Eintrag für {schema}.{table}.\nEs '
                            'ist keine zone_id oder kein primary key angegeben.'
                            .format(schema=schema, table=table))
-                    self.emit( signal, msg, 0)
+                    self.error.emit(msg)
                     return
 
-                self.emit(signal, 'Starte Verschneidung...', 0)
+                self.progress.emit('Starte Verschneidung...', 0)
 
                 if zone_name is None or zone_name == '':
                     name_str = "''"
@@ -547,15 +545,21 @@ class DBConnection(object):
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM meta.areas_available AS a
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
-                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell (id, geom, zone_name) AS
+                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell_3044 (id, geom, zone_name) AS
                 SELECT
                 t."{pkey}"::integer AS id,
-                t.geom::geometry(GEOMETRY) AS geom,
+                st_transform(st_multi(t.geom), 3044) AS geom,
                 {name_str}::text AS zone_name
 
-                FROM {schema}.{table} AS t;"""
-                execute(sql_prep.format(pkey=zone_id, schema=schema, table=table,
-                                        name_str=name_str))
+                FROM {schema}.{table} AS t;
+                """
+                try:
+                    execute(sql_prep.format(pkey=zone_id, schema=schema,
+                                            table=table,
+                                            name_str=name_str))
+                except psycopg2.ProgrammingError as e:
+                    self.error.emit(str(e))
+                    return
 
                 self.add_pnt_column_if_exists(zone_id, name_str)
 
@@ -563,12 +567,16 @@ class DBConnection(object):
                 progress = 0
 
                 for query in queries:
-                    self.emit(signal, query.message.decode('utf8'), progress)
-                    execute(query.command)
+                    self.progress.emit(query.message, progress)
+                    try:
+                        execute(query.command)
+                    except psycopg2.ProgrammingError as e:
+                        self.error.emit(str(e))
+                        return
                     progress += (query.weight / weight_sum) * 100
 
 
-                self.emit( signal, 'Nachbereitungen laufen...', progress)
+                self.progress.emit('Nachbereitungen laufen...', progress)
 
                 sql_post = """
                 UPDATE meta.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
@@ -578,8 +586,7 @@ class DBConnection(object):
                 """
                 execute(sql_post.format(schema=schema, table=table))
 
-                self.emit(signal,
-                          'Verschneidung beendet!', 100)
+                self.progress.emit('Verschneidung beendet!', 100)
 
                 return
 
