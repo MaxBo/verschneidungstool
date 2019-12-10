@@ -708,7 +708,7 @@ class DBConnection(object):
     def db_table_to_shape_file(self, schema, table, process, filename,
                                columns=None,  on_progress=None,
                                srid=None, on_finish=None):
-        pgsql2shp_path = ['pgsql2shp_path']
+        pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
 
         if not os.path.exists(pgsql2shp_path):
