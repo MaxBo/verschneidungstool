@@ -39,3 +39,5 @@ nosetests.xml
 
 *.wpu
 *.wpr
+
+config_*.xml
