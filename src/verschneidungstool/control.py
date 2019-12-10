@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtGui, QtCore, uic, QtWidgets, Qt
 import os
+import psycopg2
 
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
@@ -358,7 +359,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         station_table = self.stations_combo.currentText()
         station_schema = self.stations_combo.itemData(station_idx)[1]
         # set selected stations in db
-        self.db_conn.set_current_stations(station_table, station_schema)
+        try:
+            self.db_conn.set_current_stations(station_table, station_schema)
+        except psycopg2.ProgrammingError as e:
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning, "Fehler!", str(e))
+            msgBox.exec_()
+            return
 
         intersectDiag = IntersectionDialog(self.db_conn, schema,
                                            table, auto_close=auto_close)

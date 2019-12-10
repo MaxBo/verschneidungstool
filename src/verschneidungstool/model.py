@@ -570,7 +570,7 @@ class DBConnection(object):
                     self.progress.emit(query.message, progress)
                     try:
                         execute(query.command)
-                    except psycopg2.ProgrammingError as e:
+                    except psycopg2.Error as e:
                         self.error.emit(str(e))
                         return
                     progress += (query.weight / weight_sum) * 100
