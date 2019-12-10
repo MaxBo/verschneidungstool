@@ -28,6 +28,9 @@ class Ui_Settings(object):
         self.load_config_button = QtWidgets.QPushButton(Settings)
         self.load_config_button.setObjectName("load_config_button")
         self.horizontalLayout.addWidget(self.load_config_button)
+        self.save_as_button = QtWidgets.QPushButton(Settings)
+        self.save_as_button.setObjectName("save_as_button")
+        self.horizontalLayout.addWidget(self.save_as_button)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.OK_button = QtWidgets.QPushButton(Settings)
@@ -142,6 +145,7 @@ class Ui_Settings(object):
         _translate = QtCore.QCoreApplication.translate
         Settings.setWindowTitle(_translate("Settings", "Einstellungen"))
         self.load_config_button.setText(_translate("Settings", "Konfiguration laden"))
+        self.save_as_button.setText(_translate("Settings", "Speichern als"))
         self.OK_button.setText(_translate("Settings", "OK"))
         self.cancel_button.setText(_translate("Settings", "Abbrechen"))
         self.label_5.setText(_translate("Settings", "Passwort"))

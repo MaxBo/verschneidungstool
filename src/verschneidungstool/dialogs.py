@@ -176,6 +176,7 @@ class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
                              selected_filter_idx=1))
 
         self.load_config_button.clicked.connect(self.load_external_config)
+        self.save_as_button.clicked.connect(self.save_config_as)
 
         self.srid_default_button.clicked.connect(
             lambda: self.srid_edit.setText(str(DEFAULT_SRID)))
@@ -205,11 +206,7 @@ class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
         config.read()
         self.close()
 
-    def exit_with_saving(self):
-        '''
-        get values from form and write changed config to config singleton
-        and to disk
-        '''
+    def apply_settings(self):
         db_config = config.settings['db_config']
         db_config['username'] = str(self.username_edit.text())
         db_config['password'] = str(self.password_edit.text())
@@ -223,6 +220,12 @@ class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
         env['shp2pgsql_path'] = str(self.shp2pgsql_edit.text())
         env['pgsql2shp_path'] = str(self.pgsql2shp_edit.text())
 
+    def exit_with_saving(self):
+        '''
+        get values from form and write changed config to config singleton
+        and to disk
+        '''
+        self.apply_settings()
         config.write()
         self.close()
 
@@ -234,15 +237,25 @@ class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
     def load_external_config(self):
         filters = ';;'.join([ALL_FILES_FILTER, XML_FILTER])
 
-        filename = str(QtWidgets.QFileDialog.getOpenFileName(
+        filename, ext = QtWidgets.QFileDialog.getOpenFileName(
             self, 'Datei wählen',
             os.path.split((sys.argv)[0])[0],
-            filters, XML_FILTER))
+            filters, XML_FILTER)
 
         # filename is '' if canceled
         if len(filename) > 0:
             config.read(filename=filename)
             self.fill()
+
+    def save_config_as(self):
+
+        filename, ext = QtWidgets.QFileDialog.getSaveFileName(
+            self, 'Speichern unter', 'config.xml', XML_FILTER)
+
+        if len(filename) > 0:
+            self.apply_settings()
+            config.write(filename=filename)
+            config.read()
 
     def set_folder(self, line_edit):
         '''
