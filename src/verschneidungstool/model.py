@@ -307,11 +307,17 @@ class DBConnection(object):
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
 
         if not os.path.exists(psql_path):
+            psql_path = os.path.join(os.path.dirname(__file__),
+                                     psql_path)
+        if not os.path.exists(psql_path):
             on_progress(u'<b>Die angegebene <i>psql_path.exe</i> wurde '
                         'nicht gefunden. </br> Bitte prüfen Sie die '
                         'Einstellungen!</b>')
             return
 
+        if not os.path.exists(shp2pgsql_path):
+            shp2pgsql_path = os.path.join(os.path.dirname(__file__),
+                                          shp2pgsql_path)
         if not os.path.exists(shp2pgsql_path):
             on_progress(u'<b>Die angegebene <i>shp2pgsql_path.exe</i> wurde '
                         'nicht gefunden. </br> Bitte prüfen Sie die '
@@ -702,8 +708,12 @@ class DBConnection(object):
     def db_table_to_shape_file(self, schema, table, process, filename,
                                columns=None,  on_progress=None,
                                srid=None, on_finish=None):
-        pgsql2shp_path = config.settings['env']['pgsql2shp_path']
+        pgsql2shp_path = ['pgsql2shp_path']
         db_config = config.settings['db_config']
+
+        if not os.path.exists(pgsql2shp_path):
+            pgsql2shp_path = os.path.join(os.path.dirname(__file__),
+                                          pgsql2shp_path)
 
         if not os.path.exists(pgsql2shp_path):
             on_progress(u'<b>Die angegebene <i>pgsql2shp.exe</i> wurde nicht '
