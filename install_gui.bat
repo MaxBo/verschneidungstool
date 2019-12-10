@@ -1,10 +1,5 @@
-call conda create -n verschneidungstool python=3.7
-call activate verschneidungstool
-call conda install -y pyqt=5
-call conda install -y numpy
-call conda install -y psycopg2
-call conda install -y xlwt
-call conda install -y lxml
+call conda create -y -n verschneidungstool38 python=3.8 setuptools pyqt=5 numpy psycopg2 xlwt lxml
+call activate verschneidungstool38
 call python setup.py install
 echo.
 echo.
