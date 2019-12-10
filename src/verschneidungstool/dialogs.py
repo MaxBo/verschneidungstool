@@ -229,6 +229,7 @@ class ConfigDialog(QtWidgets.QDialog, Ui_Settings):
         config.write()
         self.close()
 
+        db_config = config.settings['db_config']
         # check if login changed (ToDo: trigger event?)
         shared_items = set(self.old_db_config.items()) & set(db_config.items())
         if self.on_change and (len(shared_items) != len(db_config)):
