@@ -285,4 +285,4 @@ class Ui_MainWindow(object):
         self.actionEinstellungen.setText(_translate("MainWindow", "Einstellungen"))
         self.actionBeenden.setText(_translate("MainWindow", "Beenden"))
 
-import gui_rc
+from verschneidungstool import gui_rc

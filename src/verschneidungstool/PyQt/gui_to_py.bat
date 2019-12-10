@@ -1,4 +1,4 @@
-call pyuic5 -o ..\main_view.py main.ui
+call pyuic5 -o ..\main_view.py main.ui --import-from verschneidungstool
 call pyuic5 -o ..\settings_view.py settings.ui
 call pyuic5 -o ..\upload_view.py upload.ui
 call pyuic5 -o ..\progress_view.py progress.ui
