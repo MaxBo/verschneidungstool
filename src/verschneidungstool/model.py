@@ -548,7 +548,7 @@ class DBConnection(object):
                 CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell_3044 (id, geom, zone_name) AS
                 SELECT
                 t."{pkey}"::integer AS id,
-                st_transform(st_multi(t.geom), 3044) AS geom,
+                st_multi(st_transform(t.geom, 3044))::geometry(MULTIPOLYGON, 3044) AS geom,
                 {name_str}::text AS zone_name
 
                 FROM {schema}.{table} AS t;
@@ -571,7 +571,8 @@ class DBConnection(object):
                     try:
                         execute(query.command)
                     except psycopg2.Error as e:
-                        self.error.emit(str(e))
+                        self.error.emit(os.linesep.join((
+                            query.command, str(e))))
                         return
                     progress += (query.weight / weight_sum) * 100
 

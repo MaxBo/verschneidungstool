@@ -498,19 +498,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if not auto_args:
             if self.csv_radio_button.isChecked():
-                filename = QtWidgets.QFileDialog.getSaveFileName(
+                filename, ext = QtWidgets.QFileDialog.getSaveFileName(
                     self, 'Speichern unter', 'results.csv', '*.csv')
                 if len(filename) > 0:
                     csv = True
 
             elif self.excel_radio_button.isChecked():
-                filename = QtWidgets.QFileDialog.getSaveFileName(
+                filename, ext = QtWidgets.QFileDialog.getSaveFileName(
                     self, 'Speichern unter', 'results.xls', '*.xls')
                 if len(filename) > 0:
                     xls = True
 
             elif self.shape_radio_button.isChecked():
-                filename = QtWidgets.QFileDialog.getSaveFileName(
+                filename, ext = QtWidgets.QFileDialog.getSaveFileName(
                     self, 'Speichern unter', 'results.shp', '*.shp')
                 if len(filename) > 0:
                     shp = True
