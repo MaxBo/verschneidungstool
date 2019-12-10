@@ -347,10 +347,11 @@ class DBConnection(object):
         # call callback with standard error and output
         def progress():
             if process.state() != QtCore.QProcess.NotRunning:
-                out = str(process.readAllStandardOutput())
-                err = str(process.readAllStandardError())
-                if len(out) > 0: self.on_progress(out)
-                if len(err) > 0: self.on_progress(err)
+                out = bytearray(process.readAllStandardOutput())
+                err = bytearray(process.readAllStandardError())
+                if len(out) > 0: on_progress(out.decode('utf-8'))
+                if len(err) > 0: on_progress(err.decode('utf-8'))
+
             if conversion_process.state() != QtCore.QProcess.NotRunning:
                 self.on_progress(str(conversion_process.readAllStandardError()))
 
@@ -744,10 +745,10 @@ class DBConnection(object):
 
         # call callback with standard error and output
         def progress():
-            out = str(process.readAllStandardOutput())
-            err = str(process.readAllStandardError())
-            if len(out) > 0: on_progress(out)
-            if len(err) > 0: on_progress(err)
+            out = bytearray(process.readAllStandardOutput())
+            err = bytearray(process.readAllStandardError())
+            if len(out) > 0: on_progress(out.decode('utf-8'))
+            if len(err) > 0: on_progress(err.decode('utf-8'))
 
         if on_progress:
             process.readyReadStandardOutput.connect(progress)
