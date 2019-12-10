@@ -5,10 +5,6 @@ call conda install -y numpy
 call conda install -y psycopg2
 call conda install -y xlwt
 call conda install -y lxml
-cd extractiontools
-call python setup.py install
-cd ..
-cd verschneidungstool
 call python setup.py install
 echo.
 echo.
