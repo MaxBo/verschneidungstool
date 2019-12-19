@@ -221,10 +221,10 @@ class DBConnection(object):
         """
         return self.fetch(sql.format(schema=schema, table=table))
 
-    '''
-    get the current primary key of given table
-    '''
     def get_pkey(self, schema, table):
+        '''
+        get the current primary key of given table
+        '''
         sql = """
         SELECT a.attname
         FROM   pg_index i
@@ -237,23 +237,25 @@ class DBConnection(object):
             schema=schema, table=table))]
         return ret
 
-    '''
-    set the columns with the zone-id, zone-name and default_stops for the given
-    area table makes an entry in the areas_available table, that this column is
-    preferred as pkey
-    returns True if successful
-    returns False if not (e.g. column isn't unique, table doesn't exist)
-    '''
     def set_zone(self, schema, table, hst_id, zone_id_column=None,
                  zone_name_column=''):
+        '''
+        set the columns with the zone-id, zone-name and default_stops for the given
+        area table makes an entry in the areas_available table, that this column is
+        preferred as pkey
+        returns True if successful
+        returns False if not (e.g. column isn't unique, table doesn't exist)
+        '''
 
         # zone-id
         sql_unique = """
         ALTER TABLE {schema}.{table}
         ADD UNIQUE ({column})
         """
-
-        pkey = self.get_pkey(schema, table)
+        try:
+            pkey = self.get_pkey(schema, table)
+        except Exception as e:
+            return False, e
         if len(pkey) != 1:
             return (False, 'Kein eindeutiger primary key in hochgeladener'
                     'Tabelle vorhanden!')
@@ -286,23 +288,23 @@ class DBConnection(object):
                                        schema=schema, table=table))
         return True, ''
 
-    '''
-    upload a shapefile to the database, monitor the progress
-
-    @param schema - the schema the table will be created in
-    @param name - the name the area (= the table) gets
-    @param shapefile - the path to the shapefile to upload
-    @param process - QtCore.QProcess, process provided to upload shape into db
-    @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter
-    and an optional progress value (from 0 to 100)
-    @param on_exit - optional, additional callback, called when process is done,
-    expects exit-code and -status as params
-    @param projection - optional, srid of the projection
-    @param encoding - optional, encoding of the shapefile
-    '''
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
                  on_progress=None, srid=None, on_exit=None, encoding='UTF-8'):
+        '''
+        upload a shapefile to the database, monitor the progress
+
+        @param schema - the schema the table will be created in
+        @param name - the name the area (= the table) gets
+        @param shapefile - the path to the shapefile to upload
+        @param process - QtCore.QProcess, process provided to upload shape into db
+        @param conversion - QtCore.QProcess, process provided to convert file
+        @param on_progress - optional, method expecting a string as a parameter
+        and an optional progress value (from 0 to 100)
+        @param on_exit - optional, additional callback, called when process is done,
+        expects exit-code and -status as params
+        @param projection - optional, srid of the projection
+        @param encoding - optional, encoding of the shapefile
+        '''
         psql_path = config.settings['env']['psql_path']
         shp2pgsql_path = config.settings['env']['shp2pgsql_path']
 
@@ -397,25 +399,25 @@ class DBConnection(object):
         conversion_process.readyReadStandardOutput.connect(read_sql_code)
         conversion_process.start(shp2pgsql_cmd)
 
-    '''
-    add an aggregation area based on a given shapefile to the database, monitor
-    the progress
-
-    @param schema - the schema the table will be created in
-    @param name - the name the area (= the table) gets
-    @param shapefile - the path to the shapefile to upload
-    @param process - QtCore.QProcess, process provided to upload shape into db
-    @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter and
-    an optional progress value (from 0 to 100)
-    @param on_finish - optional, additional callback, called when run is finished
-    @param on_success - optional, additional callback, called when run was
-    successful
-    @param projection - optional, srid of the projection
-    '''
     def add_area(self, schema, name, shapefile, process, conversion_process,
                  on_progress=None, srid=None, on_finish=None, on_success=None,
                  encoding='UTF-8'):
+        '''
+        add an aggregation area based on a given shapefile to the database, monitor
+        the progress
+
+        @param schema - the schema the table will be created in
+        @param name - the name the area (= the table) gets
+        @param shapefile - the path to the shapefile to upload
+        @param process - QtCore.QProcess, process provided to upload shape into db
+        @param conversion - QtCore.QProcess, process provided to convert file
+        @param on_progress - optional, method expecting a string as a parameter and
+        an optional progress value (from 0 to 100)
+        @param on_finish - optional, additional callback, called when run is finished
+        @param on_success - optional, additional callback, called when run was
+        successful
+        @param projection - optional, srid of the projection
+        '''
 
         self.on_progress = on_progress
 
@@ -447,25 +449,25 @@ class DBConnection(object):
                           on_progress=on_progress, srid=srid, on_exit=on_exit,
                           encoding=encoding)
 
-    '''
-    add stations based on a given shapefile to the database, monitor the progress
-
-    @param schema - the schema the table will be created in
-    @param name - the name the area (= the table) gets
-    @param shapefile - the path to the shapefile to upload
-    @param process - QtCore.QProcess, process provided to upload shape into db
-    @param conversion - QtCore.QProcess, process provided to convert file
-    @param on_progress - optional, method expecting a string as a parameter
-    and an optional progress value (from 0 to 100)
-    @param on_finish - optional, additional callback, called when run
-    is finished
-    @param on_success - optional, additional callback, called when run was
-    successful
-    @param projection - optional, srid of the projection
-    '''
     def add_stations(self, schema, name, shapefile, process, conversion_process,
                  on_progress=None, srid=None, on_finish=None, on_success=None,
                  encoding='UTF-8'):
+        '''
+        add stations based on a given shapefile to the database, monitor the progress
+
+        @param schema - the schema the table will be created in
+        @param name - the name the area (= the table) gets
+        @param shapefile - the path to the shapefile to upload
+        @param process - QtCore.QProcess, process provided to upload shape into db
+        @param conversion - QtCore.QProcess, process provided to convert file
+        @param on_progress - optional, method expecting a string as a parameter
+        and an optional progress value (from 0 to 100)
+        @param on_finish - optional, additional callback, called when run
+        is finished
+        @param on_success - optional, additional callback, called when run was
+        successful
+        @param projection - optional, srid of the projection
+        '''
 
         self.on_progress = on_progress
 
@@ -693,8 +695,8 @@ class DBConnection(object):
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
         self.results_to_csv(schema, table, columns, tmp_filename)
 
-        with open(tmp_filename, 'r') as f:
-            csvreader = csv.reader(f, delimiter=",")
+        with open(tmp_filename, 'rb') as f:
+            csvreader = csv.reader((f), delimiter=",")
             wbk = xlwt.Workbook()
             sheet = wbk.add_sheet("Sheet 1")
             for r, row in enumerate(csvreader):
@@ -767,22 +769,21 @@ class DBConnection(object):
                                    srid=srid, on_finish=on_finish)
 
 
-'''
-parse and return the complete data, projcs and geogcs description out of a
-given .prj file
-'''
 def parse_projection_file(filename):
+    '''
+    parse and return the complete data, projcs and geogcs description out of a
+    given .prj file
+    '''
     with open(filename) as f:
         data = f.read()
         projcs, geogcs = parse_projection_data(data)
 
     return data, projcs, geogcs
 
-'''
-parse and return the projcs and geogcs description out of a projection-string
-'''
 def parse_projection_data(data):
-
+    '''
+    parse and return the projcs and geogcs description out of a projection-string
+    '''
     projcs_pattern = 'PROJCS\["(.*?)",'
     projcs_matches = re.findall(projcs_pattern, data)
     geogcs_pattern = 'GEOGCS\["(.*?)",'
