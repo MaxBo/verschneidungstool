@@ -693,8 +693,8 @@ class DBConnection(object):
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
         self.results_to_csv(schema, table, columns, tmp_filename)
 
-        with open(tmp_filename, 'rb') as f:
-            csvreader = csv.reader((f), delimiter=",")
+        with open(tmp_filename, 'r') as f:
+            csvreader = csv.reader(f, delimiter=",")
             wbk = xlwt.Workbook()
             sheet = wbk.add_sheet("Sheet 1")
             for r, row in enumerate(csvreader):
