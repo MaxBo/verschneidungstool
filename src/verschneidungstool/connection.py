@@ -55,7 +55,7 @@ class Connection(object):
                                 port=login.port,
                                 database=login.db,
                                 connection_factory=NamedTupleConnection,
-                                sslmode='require')
+                                sslmode='prefer')
         self.conn = conn
         self.conn.get_dict_cursor = self.get_dict_cursor
         self.conn.get_column_dict = self.get_column_dict
