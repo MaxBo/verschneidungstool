@@ -326,7 +326,7 @@ class DBConnection(object):
                         'Einstellungen!</b>')
             return
 
-        options = '-c -g geom -I'
+        options = '-c -g geom -I -i'
         self.on_progress = on_progress
         target_srid = config.settings['db_config']['srid']
         if srid:
