@@ -554,7 +554,7 @@ class DBConnection(object):
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM meta.areas_available AS a
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
-                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell_3044 (id, geom, zone_name) AS
+                CREATE OR REPLACE VIEW vz.view_vz_aktuell_3044 (id, geom, zone_name) AS
                 SELECT
                 t."{pkey}"::integer AS id,
                 st_multi(st_transform(t.geom, 3044))::geometry(MULTIPOLYGON, 3044) AS geom,
@@ -619,7 +619,7 @@ class DBConnection(object):
                     pnt_col_def = 'st_pointonsurface(t.geom)::geometry(POINT)'
 
                 sql_pnt = """
-                CREATE OR REPLACE VIEW verkehrszellen.view_vz_aktuell_pnt (id, pnt, zone_name) AS
+                CREATE OR REPLACE VIEW vz.view_vz_aktuell_pnt (id, pnt, zone_name) AS
                 SELECT
                 t."{pkey}"::integer AS id,
                 {pnt_col_def} AS pnt,
