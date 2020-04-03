@@ -2,10 +2,12 @@
 import psycopg2
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
+from verschneidungstool.save2visumtransfer import save_to_visum_transfer
 from PyQt5 import QtCore
 import tempfile, os, shutil, re
 import csv
 import xlwt
+import pandas as pd
 
 config = Config()
 
@@ -686,9 +688,27 @@ class DBConnection(object):
             self.copy_expert(sql.format(
                 columns=columns, table=table, schema=schema), fileobject)
 
-    def results_to_csv(self, schema, table, columns, filename):
+    def results_to_csv(self,
+                       schema: str,
+                       table: str,
+                       columns: List[str],
+                       filename: str):
         columns = ['vz_id', 'zone_name'] + columns
         self.db_table_to_csv_file(schema, table, filename, columns=columns)
+
+    def results_to_visum_transfer(self,
+                                  schema: str,
+                                  table: str,
+                                  columns: List[str],
+                                  filename: str):
+        columns = ['vz_id'] + columns
+        colstr = ', '.join(f'"{c}"' for c in columns)
+        sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
+        with Connection(self.login) as conn:
+            df = pd.read_sql(sql,
+                             con=conn,
+                             index_col='vz_id')
+        save_to_visum_transfer(df, filename)
 
     def results_to_excel(self, schema, table, columns, filename):
         tmp_dir = tempfile.mkdtemp()
