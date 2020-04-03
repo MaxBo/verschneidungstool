@@ -15,6 +15,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
         datatype = dtype2datatype.get(col.dtype.char, 'Double')
         userdefined.add_daten_attribute('BEZIRK', colname, datentyp=datatype)
 
+    df.index.name = zones.pkey
     zones.df = df
 
     transfer = VisumTransfer.new_transfer()

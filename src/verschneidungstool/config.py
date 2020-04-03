@@ -15,12 +15,18 @@ setting_struct = {
         'host': 'localhost',
         'port': '5432',
         'srid': DEFAULT_SRID,
-        },
+    },
     'env': {
         'psql_path': 'dlls/psql.exe',
         'shp2pgsql_path': 'dlls/shp2pgsql.exe',
         'pgsql2shp_path': 'dlls/pgsql2shp.exe'
-        }
+    },
+    'recent': {
+        'stations': '-1',
+        'aggregations': '-1',
+        'year': '-1',
+        'download_folder': '',
+    }
 }
 
 

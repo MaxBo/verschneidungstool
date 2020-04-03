@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import List
 import psycopg2
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config

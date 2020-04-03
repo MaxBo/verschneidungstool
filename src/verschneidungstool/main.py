@@ -44,7 +44,7 @@ def startmain():
                         help="Jahr der herunterzuladenden Ergebnisse",
                         dest="year")
 
-    parser.add_argument("--schema", action="store", default='verkehrszellen',
+    parser.add_argument("--schema", action="store", default='vz',
                         help="Datenbankschema (Pflicht bei Shapefile-Upload "
                         "und Verschneidung)",
                         dest="schema")
@@ -77,8 +77,8 @@ def startmain():
 
     if arguments.download_file:
         ext = os.path.splitext(arguments.download_file)
-        if not ext[1] in ['.csv', '.shp', '.xls']:
-            print('gültige Dateiendung für Datentyp .shp, .csv oder '
+        if not ext[1] in ['.csv', '.shp', '.xls', 'tra']:
+            print('gültige Dateiendung für Datentyp .shp, .csv, .tra oder '
                   '.xls wählen')
             exit(1)
 

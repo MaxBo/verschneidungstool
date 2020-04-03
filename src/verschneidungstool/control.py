@@ -138,6 +138,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 [id, schema, table_name, can_be_deleted, default_stops,
                  results_schema, results_table, check_last_calculation])
 
+        idx = int(config.settings['recent']['aggregations'])
+        self.layer_combo.setCurrentIndex(idx)
         self.area_changed()
         return True
 
@@ -199,6 +201,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     '''
     def area_changed(self):
         idx = self.layer_combo.currentIndex()
+
         # nothing selected (e.g. when triggered on clearance)
         if idx < 0:
             return
@@ -492,7 +495,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # set selected stations in db
         self.db_conn.set_current_stations(station_table, station_schema)
 
-        csv = shp = xls = False
+        csv = shp = xls = tra = False
 
         auto_close = False
 
@@ -515,6 +518,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if len(filename) > 0:
                     shp = True
 
+            elif self.visum_radio_button.isChecked():
+                mod_no = self.visum_mod_input.value()
+                filename, ext = QtWidgets.QFileDialog.getSaveFileName(
+                    self, 'Speichern unter', f'M{mod_no:06d}.tra', '*.tra')
+                if len(filename) > 0:
+                    tra = True
+
         else:
             auto_close = True
             filename = auto_args['download_file']
@@ -525,6 +535,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 xls = True
             elif extension == '.shp':
                 shp = True
+            elif extension == '.tra':
+                tra = True
             else:
                 msg_box = QtWidgets.QMessageBox(
                     QtWidgets.QMessageBox.Warning, "Warnung!",
@@ -532,7 +544,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 msg_box.exec_()
                 return
 
-        if csv or xls:
+        if csv or xls or tra:
 
             msg_box = QtWidgets.QMessageBox(parent=self)
             msg_box.setWindowTitle("Lade herunter, bitte warten ...")
@@ -546,11 +558,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         elif xls:
             self.db_conn.results_to_excel(results_schema, results_table,
                                           selected_columns, filename)
+        elif tra:
+            self.db_conn.results_to_visum_transfer(results_schema, results_table,
+                                                   selected_columns, filename)
         elif shp:
             diag = ExecDownloadResultsShape(
             self.db_conn, results_schema, results_table, selected_columns,
             filename, parent=self, auto_close=auto_close)
             diag.exec_()
 
-        if csv or xls:
+        if csv or xls or tra:
             msg_box.close()
