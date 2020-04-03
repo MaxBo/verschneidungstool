@@ -8,7 +8,8 @@ def save_to_visum_transfer(df: pd.DataFrame,
     userdefined = BenutzerdefiniertesAttribut(mode='+')
     zones = Bezirke(mode='*')
     dtype2datatype = {'d': 'Double',
-                      'O': 'String', }
+                      'q': 'Integer',
+                      'O': 'Text', }
 
     for colname in df.columns:
         col = df[colname]
