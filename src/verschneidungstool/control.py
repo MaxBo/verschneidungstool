@@ -463,10 +463,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             schema = auto_args['schema']
             year = auto_args['year']
 
-            # ToDo: pass with arguments?
-            results_table = 'results'
-            results_schema =  'strukturdaten'
-
         if len(last_calc) == 0:
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
@@ -495,7 +491,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # set selected stations in db
         self.db_conn.set_current_stations(station_table, station_schema)
 
-        csv = shp = xls = tra = False
+        schema_resulttables = set(self.db_conn.get_column_definition(col)['resulttable']
+                                  for col in selected_columns)
+
+        several_resulttables = len(schema_resulttables) > 1
+
+        csv = shp = xlsx = tra = False
 
         auto_close = False
 
@@ -508,9 +509,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             elif self.excel_radio_button.isChecked():
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
-                    self, 'Speichern unter', 'results.xls', '*.xls')
+                    self, 'Speichern unter', 'results.xlsx', '*.xlsx')
                 if len(filename) > 0:
-                    xls = True
+                    xlsx = True
 
             elif self.shape_radio_button.isChecked():
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
@@ -531,8 +532,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             f, extension = os.path.splitext(filename)
             if extension == '.csv':
                 csv = True
-            elif extension == '.xls':
-                xls = True
+            elif extension == '.xlsx':
+                xlsx = True
             elif extension == '.shp':
                 shp = True
             elif extension == '.tra':
@@ -544,7 +545,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 msg_box.exec_()
                 return
 
-        if csv or xls or tra:
+        if csv or xlsx or tra:
 
             msg_box = QtWidgets.QMessageBox(parent=self)
             msg_box.setWindowTitle("Lade herunter, bitte warten ...")
@@ -552,20 +553,42 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msg_box.setWindowModality(QtCore.Qt.NonModal)
             msg_box.show()
 
-        if csv:
-            self.db_conn.results_to_csv(results_schema, results_table,
-                                        selected_columns, filename)
-        elif xls:
-            self.db_conn.results_to_excel(results_schema, results_table,
-                                          selected_columns, filename)
-        elif tra:
-            self.db_conn.results_to_visum_transfer(results_schema, results_table,
-                                                   selected_columns, filename)
-        elif shp:
-            diag = ExecDownloadResultsShape(
-            self.db_conn, results_schema, results_table, selected_columns,
-            filename, parent=self, auto_close=auto_close)
-            diag.exec_()
+        resulttables_available = {r.schema_table: r
+                                  for r in self.db_conn.get_resulttables_available()}
 
-        if csv or xls or tra:
+        for i, schema_resulttable in enumerate(schema_resulttables):
+            append = i > 0
+            results_schema, results_table = schema_resulttable.split('.')
+            columns_for_resulttable = [
+                colname for colname in selected_columns
+                if self.db_conn.get_column_definition(colname)['resulttable']
+                == schema_resulttable]
+            visum_classname = resulttables_available[schema_resulttable].visum_class
+            if several_resulttables:
+                fp, ext = os.path.splitext(filename)
+                fn = f'{fp}_{visum_classname}{ext}'
+            else:
+                fn = filename
+
+            if csv:
+                self.db_conn.results_to_csv(results_schema, results_table,
+                                            columns_for_resulttable, fn)
+            elif xlsx:
+                self.db_conn.results_to_excel(results_schema, results_table,
+                                              columns_for_resulttable, filename,
+                                              visum_classname, append)
+            elif tra:
+                self.db_conn.results_to_visum_transfer(results_schema,
+                                                       results_table,
+                                                       columns_for_resulttable,
+                                                       filename,
+                                                       visum_classname,
+                                                       append)
+            elif shp:
+                diag = ExecDownloadResultsShape(
+                    self.db_conn, results_schema, results_table, columns_for_resulttable,
+                    fn, parent=self, auto_close=auto_close)
+                diag.exec_()
+
+        if csv or xlsx or tra:
             msg_box.close()

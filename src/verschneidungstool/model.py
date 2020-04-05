@@ -7,7 +7,7 @@ from verschneidungstool.save2visumtransfer import save_to_visum_transfer
 from PyQt5 import QtCore
 import tempfile, os, shutil, re
 import csv
-import xlwt
+from openpyxl import load_workbook, Workbook
 import pandas as pd
 
 config = Config()
@@ -68,6 +68,14 @@ class DBConnection(object):
         """
         return self.fetch(sql)
 
+    def get_resulttables_available(self):
+        sql = """
+        SELECT schema_table, visum_class
+        FROM meta.resulttables_available
+        ORDER BY schema_table
+        """
+        return self.fetch(sql)
+
     def get_tables_to_download(self):
         sql = """
         SELECT id, name, schema, tablename, category
@@ -89,7 +97,10 @@ class DBConnection(object):
                 if record.table_type not in self.colums_available:
                     self.colums_available[record.table_type] = []
                 self.colums_available[record.table_type].append({
-                    'name': record.column, 'description': record.description})
+                    'name': record.column,
+                    'description': record.description,
+                    'resulttable': record.resulttable,
+                })
 
         sql_cat = """
         SELECT tc.name
@@ -107,6 +118,15 @@ class DBConnection(object):
         for record in categories:
             structure[record.name] = self.colums_available[record.name]
         return structure
+
+    def get_column_definition(self, colname: str):
+        """
+        get column definition for colname
+        """
+        for coldefs in self.colums_available.values():
+            for coldef in coldefs:
+                if coldef['name'] == colname:
+                    return coldef
 
     def get_schemata_available(self):
         sql = """
@@ -675,10 +695,10 @@ class DBConnection(object):
 
     # empty column array selects all columns (*)
     def db_table_to_csv_file(self, schema, table, filename, columns=None):
-        sql = '''
+        sql = """
         COPY (SELECT {columns}
         FROM {schema}.{table}) TO STDOUT WITH CSV HEADER
-        '''
+        """
         if columns and len(columns) > 0:
             columns = ['"{}"'.format(c) for c in columns]
             columns = ','.join(columns)
@@ -701,7 +721,9 @@ class DBConnection(object):
                                   schema: str,
                                   table: str,
                                   columns: List[str],
-                                  filename: str):
+                                  filename: str,
+                                  visum_classname: str = 'Bezirke',
+                                  append: bool = False):
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -709,24 +731,36 @@ class DBConnection(object):
             df = pd.read_sql(sql,
                              con=conn,
                              index_col='vz_id')
-        save_to_visum_transfer(df, filename)
+        save_to_visum_transfer(df, filename, visum_classname, append)
 
-    def results_to_excel(self, schema, table, columns, filename):
+    def results_to_excel(self,
+                         schema: str,
+                         table: str,
+                         columns: List[str],
+                         filename: str,
+                         visum_classname: str = 'Bezirke',
+                         append: bool = False):
         tmp_dir = tempfile.mkdtemp()
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
         self.results_to_csv(schema, table, columns, tmp_filename)
 
         with open(tmp_filename, 'r') as f:
             csvreader = csv.reader((f), delimiter=",")
-            wbk = xlwt.Workbook()
-            sheet = wbk.add_sheet("Sheet 1")
+            if append:
+                wbk = load_workbook(filename)
+            else:
+                wbk = Workbook()
+                first_sheet = wbk.active
+            sheet = wbk.create_sheet(visum_classname)
+            if not append:
+                wbk.remove_sheet(first_sheet)
             for r, row in enumerate(csvreader):
                 for c, value in enumerate(row):
                     try:
                         val = float(value)
                     except ValueError:
                         val = value
-                    sheet.write(r, c, val)
+                    sheet.cell(r + 1, c + 1, val)
             wbk.save(filename)
 
     def db_table_to_shape_file(self, schema, table, process, filename,
