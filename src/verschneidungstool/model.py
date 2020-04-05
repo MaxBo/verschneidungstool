@@ -116,7 +116,7 @@ class DBConnection(object):
         structure = {}
 
         for record in categories:
-            structure[record.name] = self.colums_available[record.name]
+            structure[record.name] = self.colums_available.get(record.name, dict())
         return structure
 
     def get_column_definition(self, colname: str):
