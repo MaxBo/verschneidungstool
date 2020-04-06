@@ -25,7 +25,8 @@ setting_struct = {
         'stations': '-1',
         'aggregations': '-1',
         'year': '-1',
-        'download_folder': '',
+        'download_tables_folder': '',
+        'download_results_folder': '',
     }
 }
 

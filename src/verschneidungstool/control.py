@@ -516,30 +516,39 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         auto_close = False
 
         if not auto_args:
+            recent_dirname = config.settings['recent'].get(
+                'download_results_folder', '')
             if self.csv_radio_button.isChecked():
+                fname = os.path.join(recent_dirname, 'results.csv')
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
-                    self, 'Speichern unter', 'results.csv', '*.csv')
+                    self, 'Speichern unter', fname, '*.csv')
                 if len(filename) > 0:
                     csv = True
 
             elif self.excel_radio_button.isChecked():
+                fname = os.path.join(recent_dirname, 'results.xlsx')
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
-                    self, 'Speichern unter', 'results.xlsx', '*.xlsx')
+                    self, 'Speichern unter', fname, '*.xlsx')
                 if len(filename) > 0:
                     xlsx = True
 
             elif self.shape_radio_button.isChecked():
+                fname = os.path.join(recent_dirname, 'results.shp')
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
-                    self, 'Speichern unter', 'results.shp', '*.shp')
+                    self, 'Speichern unter', fname, '*.shp')
                 if len(filename) > 0:
                     shp = True
 
             elif self.visum_radio_button.isChecked():
                 mod_no = self.visum_mod_input.value()
+                fname = os.path.join(recent_dirname, f'M{mod_no:06d}.tra')
                 filename, ext = QtWidgets.QFileDialog.getSaveFileName(
-                    self, 'Speichern unter', f'M{mod_no:06d}.tra', '*.tra')
+                    self, 'Speichern unter', fname, '*.tra')
                 if len(filename) > 0:
                     tra = True
+
+            download_results_folder = os.path.split(filename)[0]
+            config.settings['recent']['download_results_folder'] = download_results_folder
 
         else:
             auto_close = True

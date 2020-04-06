@@ -129,11 +129,13 @@ def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER],
         line_edit.setText(filename)
 
 def set_directory(parent, line_edit):
+    recent_dirname = config.settings['recent'].get('download_tables_folder')
     dirname = QtWidgets.QFileDialog.getExistingDirectory(
-                parent, 'Zielverzeichnis wählen')
+        parent, 'Zielverzeichnis wählen', recent_dirname)
     # dirname is '' if canceled
     if len(dirname) > 0:
         line_edit.setText(dirname)
+        config.settings['recent']['download_tables_folder'] = dirname
 
 def validate_dbstring(string):
     '''
