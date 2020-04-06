@@ -47,6 +47,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.dbconnect_button.clicked.connect(self.db_reset)
 
+    def closeEvent(self, event):
+        layer = self.layer_combo.currentText()
+        config.settings['recent']['aggregations'] = layer
+        stations = self.stations_combo.currentText()
+        config.settings['recent']['stations'] = stations
+        year = self.year_combo.currentText()
+        config.settings['recent']['year'] = year
+        config.write()
+        return super().closeEvent(event)
+
     # check command-line arguments, if something shall be done automatically (without further user input)
     def exec_arguments(self, arguments):
         self.arguments = arguments
@@ -138,9 +148,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 [id, schema, table_name, can_be_deleted, default_stops,
                  results_schema, results_table, check_last_calculation])
 
-        idx = int(config.settings['recent']['aggregations'])
-        self.layer_combo.setCurrentIndex(idx)
+        layer = config.settings['recent']['aggregations']
+        self.layer_combo.setCurrentText(layer)
         self.area_changed()
+        stations = config.settings['recent']['stations']
+        self.stations_combo.setCurrentText(stations)
+        self.station_changed()
         return True
 
     def render_stations(self):
@@ -159,6 +172,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return False
         for year, in self.years:
             self.year_combo.addItem(str(year))
+        year = config.settings['recent']['year']
+        self.year_combo.setCurrentText(year)
 
         self.render_structure()
         return True
