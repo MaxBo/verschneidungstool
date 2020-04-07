@@ -694,20 +694,27 @@ class DBConnection(object):
 
 
     # empty column array selects all columns (*)
-    def db_table_to_csv_file(self, schema, table, filename, columns=None):
+    def db_table_to_csv_file(self, schema, table,
+                             filename,
+                             columns=None,
+                             order_by=None):
         sql = """
         COPY (SELECT {columns}
-        FROM {schema}.{table}) TO STDOUT WITH CSV HEADER
+        FROM {schema}.{table}{order}) TO STDOUT WITH CSV HEADER
         """
+        order = f' ORDER BY "{order_by}"' if order_by in columns or len(columns) == 0 else ''
+
         if columns and len(columns) > 0:
-            columns = ['"{}"'.format(c) for c in columns]
-            columns = ','.join(columns)
+            columns=['"{}"'.format(c) for c in columns]
+            columns=','.join(columns)
         else:
-            columns = '*'
+            columns='*'
+
 
         with open(filename, 'w') as fileobject:
             self.copy_expert(sql.format(
-                columns=columns, table=table, schema=schema), fileobject)
+                columns=columns, table=table, schema=schema, order=order),
+                             fileobject)
 
     def results_to_csv(self,
                        schema: str,
@@ -715,7 +722,8 @@ class DBConnection(object):
                        columns: List[str],
                        filename: str):
         columns = ['vz_id', 'zone_name'] + columns
-        self.db_table_to_csv_file(schema, table, filename, columns=columns)
+        self.db_table_to_csv_file(schema, table, filename, columns=columns,
+                                  order_by='vz_id')
 
     def results_to_visum_transfer(self,
                                   schema: str,
