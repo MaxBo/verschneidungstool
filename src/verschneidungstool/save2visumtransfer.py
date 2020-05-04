@@ -24,12 +24,12 @@ def save_to_visum_transfer(df: pd.DataFrame,
         df2 = pd.wide_to_long(df.reset_index(),
                               '#', 'vz_id', 'STRUKTURGROESSENCODE',
                               suffix='\w+').reset_index()
-        zones = Level(mode='+')
-        df2.columns = zones.cols
+        visum_table = Level(mode='')
+        df2.columns = visum_table.cols
         #  select the rows where the value (in the last column) is greater than 0
         df_gt0 = df2.loc[df2.iloc[:, -1] > 0]
-        zones.df = df_gt0
-        transfer.add_table(zones)
+        visum_table.df = df_gt0
+        transfer.add_table(visum_table)
 
     else:
         userdefined = BenutzerdefiniertesAttribut(mode='+')
