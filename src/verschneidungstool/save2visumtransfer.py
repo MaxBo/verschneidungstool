@@ -23,7 +23,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
     if Level._longformat:
         df2 = pd.wide_to_long(df.reset_index(),
                               '#', 'vz_id', 'STRUKTURGROESSENCODE',
-                              suffix='\w+').reset_index()
+                              suffix='[\w\W]+').reset_index()
         visum_table = Level(mode='')
         df2.columns = visum_table.cols
         #  select the rows where the value (in the last column) is greater than 0
