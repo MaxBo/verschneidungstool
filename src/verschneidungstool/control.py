@@ -588,6 +588,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if self.db_conn.get_column_definition(colname)['resulttable']
                 == schema_resulttable]
             visum_classname = resulttables_available[schema_resulttable].visum_class
+            long_format = resulttables_available[schema_resulttable].long_format
             if several_resulttables:
                 fp, ext = os.path.splitext(filename)
                 fn = f'{fp}_{visum_classname}{ext}'
@@ -607,7 +608,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                                        columns_for_resulttable,
                                                        filename,
                                                        visum_classname,
-                                                       append)
+                                                       append,
+                                                       long_format)
             elif shp:
                 diag = ExecDownloadResultsShape(
                     self.db_conn, results_schema, results_table, columns_for_resulttable,

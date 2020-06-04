@@ -12,7 +12,18 @@ from visumtransfer.visum_tables import (BenutzerdefiniertesAttribut,
 def save_to_visum_transfer(df: pd.DataFrame,
                            filepath: str,
                            visum_classname: str = 'Bezirke',
-                           append: bool = False):
+                           append: bool = False,
+                           long_format: bool=False):
+    """
+    write the Dataframe df to the transfer-file in the section for the Visum-Table
+    defined by the visum_classname
+    if append, append the table to the transfer-file, if not, create a new
+    transfer-file with a VERSION-section
+
+    if long_format is specified, assume, that the data from the Dataframe is
+    already in long-format. If not, convert wide to long for PersonengruppeJeBezirk
+    and Strukturgroessenwert
+    """
     Level: VisumTable = globals().get(visum_classname)
     if not Level:
         raise ValueError(f'{visum_classname} not defined or imported')
@@ -21,9 +32,12 @@ def save_to_visum_transfer(df: pd.DataFrame,
     transfer = VisumTransfer.new_transfer()
 
     if Level._longformat:
-        df2 = pd.wide_to_long(df.reset_index(),
-                              '#', 'vz_id', 'STRUKTURGROESSENCODE',
-                              suffix='[\w\W]+').reset_index()
+        if not long_format:
+            df2 = pd.wide_to_long(df.reset_index(),
+                                  '#', 'vz_id', 'STRUKTURGROESSENCODE',
+                                  suffix='[\w\W]+').reset_index()
+        else:
+            df2 = df.reset_index()
         visum_table = Level(mode='')
         df2.columns = visum_table.cols
         #  select the rows where the value (in the last column) is greater than 0

@@ -70,7 +70,7 @@ class DBConnection(object):
 
     def get_resulttables_available(self):
         sql = """
-        SELECT schema_table, visum_class
+        SELECT schema_table, visum_class, long_format
         FROM meta.resulttables_available
         ORDER BY schema_table
         """
@@ -731,7 +731,8 @@ class DBConnection(object):
                                   columns: List[str],
                                   filename: str,
                                   visum_classname: str = 'Bezirke',
-                                  append: bool = False):
+                                  append: bool = False,
+                                  long_format: bool = False):
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -739,7 +740,7 @@ class DBConnection(object):
             df = pd.read_sql(sql,
                              con=conn,
                              index_col='vz_id')
-        save_to_visum_transfer(df, filename, visum_classname, append)
+        save_to_visum_transfer(df, filename, visum_classname, append, long_format)
 
     def results_to_excel(self,
                          schema: str,
