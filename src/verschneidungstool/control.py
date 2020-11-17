@@ -428,7 +428,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             get_all = True
         else:
             get_all = False
-        selected_columns = get_selected(self.structure_tree, get_all)
+        selected_columns = [(i.text(0), i.parent().text(0))
+            for i in get_selected(self.structure_tree, get_all)]
         last_calc = self.db_conn.get_last_calculated()
 
         selected_area = self.layer_combo.currentText()
@@ -506,8 +507,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # set selected stations in db
         self.db_conn.set_current_stations(station_table, station_schema)
 
-        schema_resulttables = set(self.db_conn.get_column_definition(col)['resulttable']
-                                  for col in selected_columns)
+        schema_resulttables = set(self.db_conn.get_column_definition(col, parent)['resulttable']
+                                  for col, parent in selected_columns)
 
         several_resulttables = len(schema_resulttables) > 1
 
@@ -584,8 +585,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             append = i > 0
             results_schema, results_table = schema_resulttable.split('.')
             columns_for_resulttable = [
-                colname for colname in selected_columns
-                if self.db_conn.get_column_definition(colname)['resulttable']
+                colname for colname, parent in selected_columns
+                if self.db_conn.get_column_definition(colname, parent)['resulttable']
                 == schema_resulttable]
             visum_classname = resulttables_available[schema_resulttable].visum_class
             long_format = resulttables_available[schema_resulttable].long_format

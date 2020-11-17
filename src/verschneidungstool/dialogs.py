@@ -100,7 +100,7 @@ def get_selected(tree, get_all=False):
         for j in range(col_count):
             col_item = cat_item.child(j)
             if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
-                checked.append(str(col_item.text(0)))
+                checked.append(col_item)
     return checked
 
 def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER],
@@ -925,7 +925,8 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
             msgBox.exec_()
             return
 
-        selected_tables = get_selected(self.tables_to_download_tree)
+        selected_tables = [i.text(0)
+                           for i in get_selected(self.tables_to_download_tree)]
 
         if len(selected_tables) == 0:
             msg_box = QtWidgets.QMessageBox(

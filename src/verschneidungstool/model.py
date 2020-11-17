@@ -119,14 +119,14 @@ class DBConnection(object):
             structure[record.name] = self.colums_available.get(record.name, dict())
         return structure
 
-    def get_column_definition(self, colname: str):
+    def get_column_definition(self, colname: str, parent: str):
         """
         get column definition for colname
         """
-        for coldefs in self.colums_available.values():
-            for coldef in coldefs:
-                if coldef['name'] == colname:
-                    return coldef
+        coldefs = self.colums_available[parent]
+        for coldef in coldefs:
+            if coldef['name'] == colname:
+                return coldef
 
     def get_schemata_available(self):
         sql = """
