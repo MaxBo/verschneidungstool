@@ -577,11 +577,14 @@ class DBConnection(object):
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM meta.areas_available AS a
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
-                CREATE OR REPLACE VIEW vz.view_vz_aktuell_3044 (id, geom, zone_name) AS
+                CREATE OR REPLACE VIEW vz.view_vz_aktuell_3044 (id, geom, zone_name. pnt) AS
                 SELECT
                 t."{pkey}"::integer AS id,
                 st_multi(st_transform(t.geom, 3044))::geometry(MULTIPOLYGON, 3044) AS geom,
-                {name_str}::text AS zone_name
+                {name_str}::text AS zone_name,
+                CASE WHEN t.xkoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, 3044)
+                ELSE st_setsrid(st_makepoint(t.xkoord, t.ykoord), 3044)::geometry(Point, 3044)
+                END AS pnt
 
                 FROM {schema}.{table} AS t;
                 """
