@@ -40,9 +40,9 @@ def startmain():
                         "bestimmt Datentyp: shp/csv/xls (Pflicht bei Download)",
                         dest="download_file")
 
-    parser.add_argument('-j', "--jahr", action="store", type=int,
-                        help="Jahr der herunterzuladenden Ergebnisse",
-                        dest="year")
+    parser.add_argument('-s', "--scenaio", action="store", type=int,
+                        help="Szenario der herunterzuladenden Ergebnisse",
+                        dest="scenario")
 
     parser.add_argument("--schema", action="store", default='vz',
                         help="Datenbankschema (Pflicht bei Shapefile-Upload "
@@ -99,7 +99,7 @@ def startmain():
                                not arguments.download_file or
                                not arguments.scenario):
         print('Für den Download von Ergebnissen, müssen Schema und '
-              'Tabellenname der Aggregationsstufe, ein Dateiname und das Jahr '
+              'Tabellenname der Aggregationsstufe, ein Dateiname und das Szenario '
               'der Ergebnisse angegeben werden.')
         exit(1)
 

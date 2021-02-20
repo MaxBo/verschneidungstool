@@ -271,7 +271,7 @@ class Ui_MainWindow(object):
         self.add_layer_button.setText(_translate("MainWindow", "Neuer Layer"))
         self.intersect_frame.setTitle(_translate("MainWindow", "Verschneiden"))
         self.intersect_button.setText(_translate("MainWindow", "Verschneidung berechnen"))
-        self.groupBox_2.setTitle(_translate("MainWindow", "Jahr"))
+        self.groupBox_2.setTitle(_translate("MainWindow", "Szenario"))
         self.download_frame.setTitle(_translate("MainWindow", "Ergebnisse"))
         self.shape_radio_button.setText(_translate("MainWindow", "als Shapefile"))
         self.csv_radio_button.setText(_translate("MainWindow", "als csv-Datei"))
