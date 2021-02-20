@@ -64,13 +64,13 @@ class DBConnection(object):
         sql = """
         SELECT scenario
         FROM meta.scenarios_available
-        ORDER BY year, scenario
+        ORDER BY jahr, scenario
         """
         return self.fetch(sql)
 
     def get_year_of_scenario(self, scenario: str) -> str:
         sql = f"""
-        SELECT year
+        SELECT jahr AS year
         FROM meta.scenarios_available sa
         WHERE sa.scenario = '{scenario}'
         """
