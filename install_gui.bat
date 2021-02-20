@@ -1,6 +1,10 @@
-call conda create -y -n verschneidungstool37 python=3.7 setuptools pyqt=5 numpy psycopg2 xlwt lxml
-call activate verschneidungstool37
-call python setup.py install
+call conda create -y -n verschneidungstool39 python=3.9 setuptools pyqt=5 numpy psycopg2 xlwt lxml pip pandas openpyxl xarray pytest pytables
+call conda activate verschneidungstool39
+cd visumtransfer
+call pip install .
+cd ..\verschneidungstool
+call pip install -e .
+cd ..
 echo.
 echo.
 echo Installation der grafischen Oberflaeche fuer Verschneidungen beendet.

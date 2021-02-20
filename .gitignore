@@ -1,5 +1,6 @@
 /inst_files
 /shapefiles
+configs/*
 
 *.py[cod]
 
