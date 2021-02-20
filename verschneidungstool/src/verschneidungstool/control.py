@@ -43,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.layer_combo.currentIndexChanged['QString'].connect(self.area_changed)
         self.stations_combo.currentIndexChanged['QString'].connect(self.station_changed)
-        self.year_combo.currentIndexChanged['QString'].connect(self.render_structure)
+        self.scenario_combo.currentIndexChanged['QString'].connect(self.render_structure)
 
         self.dbconnect_button.clicked.connect(self.db_reset)
 
@@ -52,8 +52,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         config.settings['recent']['aggregations'] = layer
         stations = self.stations_combo.currentText()
         config.settings['recent']['stations'] = stations
-        year = self.year_combo.currentText()
-        config.settings['recent']['year'] = year
+        scenario = self.scenario_combo.currentText()
+        config.settings['recent']['scenario'] = scenario
         config.write()
         return super().closeEvent(event)
 
@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 'schema': arguments.schema,
                 'table_name': arguments.table_name,
                 'download_file': arguments.download_file,
-                'year': arguments.year
+                'scenario': arguments.scenario
             }
             self.download_results(auto_args)
 
@@ -125,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return False
         if not self.render_areas():
             return False
-        if not self.render_years():
+        if not self.render_scenarios():
             return False
 
         # you only get here, if no errors occured
@@ -166,14 +166,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.station_changed()
         return True
 
-    def render_years(self):
-        self.year_combo.clear()
-        if not self.refresh_attr(['years']):
+    def render_scenarios(self):
+        self.scenario_combo.clear()
+        if not self.refresh_attr(['scenarios']):
             return False
-        for year, in self.years:
-            self.year_combo.addItem(str(year))
-        year = config.settings['recent']['year']
-        self.year_combo.setCurrentText(year)
+        for scenario, in self.scenarios:
+            self.scenario_combo.addItem(str(scenario))
+        scenario = config.settings['recent']['scenario']
+        self.scenario_combo.setCurrentText(scenario)
 
         self.render_structure()
         return True
@@ -182,7 +182,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     query the main attributes from the db,
     gui elements will be disabled on error
     @param attributes list of attribute-names to be queried ('areas',
-    'years' or 'schemata')
+    'scenarios' or 'schemata')
     @return True, if successful, else False
     '''
     def refresh_attr(self, attributes):
@@ -192,8 +192,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     self.areas = self.db_conn.get_areas_available()
                 if attr == 'stations':
                     self.stations = self.db_conn.get_stations_available()
-                if attr == 'years':
-                    self.years = self.db_conn.get_years_available()
+                if attr == 'scenarios':
+                    self.scenarios = self.db_conn.get_scenarios_available()
                 if attr == 'schemata':
                     self.schemata = self.db_conn.get_schemata_available()
             return True
@@ -310,17 +310,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.render_stations()
 
-    '''
-    fill the tree view with categories and subcategories depending on
-    year selection
-    '''
     def render_structure(self):
-        idx = self.year_combo.currentIndex()
+        '''
+        fill the tree view with categories and subcategories depending on
+        year of the scenario selection
+        '''
+        idx = self.scenario_combo.currentIndex()
         # nothing selected (e.g. when triggered on clearance)
         if idx < 0:
             return
         self.structure_tree.clear()
-        year = str(self.year_combo.currentText())
+        scenario = str(self.scenario_combo.currentText())
+        year = self.db_conn.get_year_of_scenario(scenario)
         structure = self.db_conn.get_structure_available(year)
         for cat, cols in structure.items():
             cat_item = QtWidgets.QTreeWidgetItem(self.structure_tree, [cat])
@@ -469,7 +470,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             table = selected_data[2]
             results_schema = selected_data[5]
             results_table = selected_data[6]
-            year = str(self.year_combo.currentText())
+            scenario = str(self.scenario_combo.currentText())
             station_idx = self.stations_combo.currentIndex()
             station_table = self.stations_combo.currentText()
             station_schema = self.stations_combo.itemData(station_idx)[1]
@@ -477,7 +478,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             selected_area = table = auto_args['table_name']
             schema = auto_args['schema']
-            year = auto_args['year']
+            scenario = auto_args['scenario']
 
         if len(last_calc) == 0:
             msg_box = QtWidgets.QMessageBox(
@@ -501,8 +502,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msg_box.exec_()
             return
 
-        # set year (referenced by db-view on results)
-        self.db_conn.set_current_year(year)
+        # set scenario (referenced by db-view on results)
+        self.db_conn.set_current_scenario(scenario)
 
         # set selected stations in db
         self.db_conn.set_current_stations(station_table, station_schema)

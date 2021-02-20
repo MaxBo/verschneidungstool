@@ -97,7 +97,7 @@ def startmain():
     if arguments.download and (not arguments.table_name or
                                not arguments.schema or
                                not arguments.download_file or
-                               not arguments.year):
+                               not arguments.scenario):
         print('Für den Download von Ergebnissen, müssen Schema und '
               'Tabellenname der Aggregationsstufe, ein Dateiname und das Jahr '
               'der Ergebnisse angegeben werden.')

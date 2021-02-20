@@ -60,11 +60,19 @@ class DBConnection(object):
         """
         return self.fetch(sql)
 
-    def get_years_available(self):
+    def get_scenarios_available(self):
         sql = """
+        SELECT scenario
+        FROM meta.scenarios_available
+        ORDER BY year, scenario
+        """
+        return self.fetch(sql)
+
+    def get_year_of_scenario(self, scenario: str) -> str:
+        sql = f"""
         SELECT year
-        FROM meta.years_available
-        ORDER BY year
+        FROM meta.scenarios_available sa
+        WHERE sa.scenario = '{scenario}'
         """
         return self.fetch(sql)
 
@@ -102,7 +110,7 @@ class DBConnection(object):
                     'resulttable': record.resulttable,
                 })
 
-        sql_cat = """
+        sql_cat = f"""
         SELECT tc.name
         FROM meta.table_categories AS tc,
         meta.column_definitions AS cd
@@ -111,7 +119,6 @@ class DBConnection(object):
         AND cd.to_year >= {year}
         ORDER BY id
         """
-        sql_cat = sql_cat.format(year=year)
         categories = self.fetch(sql_cat)
         structure = {}
 
@@ -660,12 +667,12 @@ class DBConnection(object):
         thread = Intersection()
         return thread
 
-    def set_current_year(self, year):
-        sql = """
-        UPDATE meta.current_year
-        SET jahr='{year}'
+    def set_current_scenario(self, scenario: str):
+        sql = f"""
+        UPDATE meta.current_scenario
+        SET scenario='{scenario}'
         """
-        self.execute(sql.format(year=year))
+        self.execute(sql)
 
     def set_current_stations(self, table, schema):
         sql = """

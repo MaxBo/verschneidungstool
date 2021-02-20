@@ -24,7 +24,7 @@ setting_struct = {
     'recent': {
         'stations': '-1',
         'aggregations': '-1',
-        'year': '-1',
+        'scenario': '-1',
         'download_tables_folder': '',
         'download_results_folder': '',
     }
