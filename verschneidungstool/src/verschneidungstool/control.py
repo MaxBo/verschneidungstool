@@ -321,7 +321,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         self.structure_tree.clear()
         scenario = str(self.scenario_combo.currentText())
-        year = self.db_conn.get_year_of_scenario(scenario)
+        year = self.db_conn.get_year_of_scenario(scenario)[0].year
         structure = self.db_conn.get_structure_available(year)
         for cat, cols in structure.items():
             cat_item = QtWidgets.QTreeWidgetItem(self.structure_tree, [cat])
