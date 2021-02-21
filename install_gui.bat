@@ -3,7 +3,7 @@ call conda activate verschneidungstool39
 cd visumtransfer
 call pip install .
 cd ..\verschneidungstool
-call pip install -e .
+call pip install .
 cd ..
 echo.
 echo.
