@@ -710,7 +710,7 @@ class DBConnection(object):
                              order_by=None):
         sql = """
         COPY (SELECT {columns}
-        FROM {schema}.{table}{order}) TO STDOUT WITH CSV HEADER
+        FROM "{schema}"."{table}"{order}) TO STDOUT WITH CSV HEADER
         """
         order = f' ORDER BY "{order_by}"' if order_by in columns or len(columns) == 0 else ''
 
