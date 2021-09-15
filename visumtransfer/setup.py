@@ -11,7 +11,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="visumtransfer",
-    version="0.11",
+    version="0.12",
     description="Write Visum-Transfer Files",
     packages=find_packages('src'),
     namespace_packages=['visumtransfer'],

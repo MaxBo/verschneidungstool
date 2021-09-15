@@ -261,7 +261,7 @@ class VisumTable(metaclass=MetaClass):
         fobj.writeln('*')
 
     def df_from_array(self, data_arr) -> pd.DataFrame:
-        df = pd.DataFrame(data_arr, columns=self.cols)
+        df = pd.DataFrame.from_records(data_arr, columns=self.cols)
         if self.pkey:
             df.set_index(self.pkey, inplace=True)
         return df
