@@ -268,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not can_be_deleted:
             return
 
-        id, c = selected_data[0]
+        id = selected_data[0]
         schema = selected_data[1]
         table_name = selected_data[2]
         success, msg= self.db_conn.drop_area(id, table_name, schema)

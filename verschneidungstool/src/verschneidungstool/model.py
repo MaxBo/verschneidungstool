@@ -159,7 +159,7 @@ class DBConnection(object):
         """
         # drop table
         sql_drop = """
-        Drop TABLE IF EXISTS {schema}.{table}
+        Drop TABLE IF EXISTS "{schema}"."{table}"
         """
         try:
             self.execute(sql_remove.format(id=id))
@@ -202,7 +202,7 @@ class DBConnection(object):
         """
         # drop table
         sql_drop = """
-        Drop TABLE IF EXISTS {schema}.{table}
+        Drop TABLE IF EXISTS "{schema}"."{table}"
         """
         try:
             self.execute(sql_remove.format(id=id))
@@ -260,7 +260,7 @@ class DBConnection(object):
         FROM   pg_index i
         JOIN   pg_attribute a ON a.attrelid = i.indrelid
                              AND a.attnum = ANY(i.indkey)
-        WHERE  i.indrelid = '{schema}.{table}'::regclass
+        WHERE  i.indrelid = '"{schema}"."{table}"'::regclass
         AND    i.indisprimary;
         """
         ret = [a.attname for a in self.fetch(sql.format(
@@ -279,8 +279,8 @@ class DBConnection(object):
 
         # zone-id
         sql_unique = """
-        ALTER TABLE {schema}.{table}
-        ADD UNIQUE ({column})
+        ALTER TABLE "{schema}"."{table}"
+        ADD UNIQUE ("{column}")
         """
         try:
             pkey = self.get_pkey(schema, table)
@@ -367,7 +367,7 @@ class DBConnection(object):
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
         shp2pgsql_cmd = (u'"{executable}" {options} "{input_file}" '
-                         '{schema}.{table}"'.format(
+                         '"{schema}"."{table}""'.format(
                              executable=shp2pgsql_path, options=options,
                              input_file=shapefile, schema=schema, table=name)
                          )
@@ -459,7 +459,7 @@ class DBConnection(object):
                 VALUES ('{area_name}','{schema}', '{table}', 'TRUE');
                 """
                 sql_alter = """
-                ALTER TABLE {schema}.{table}
+                ALTER TABLE "{schema}"."{table}"
                 OWNER TO verkehr;
                 """
                 self.execute(sql.format(
@@ -509,7 +509,7 @@ class DBConnection(object):
                 VALUES ('{name}','{schema}', 'TRUE');
                 """
                 sql_alter = """
-                ALTER TABLE {schema}.{table}
+                ALTER TABLE "{schema}"."{table}"
                 OWNER TO verkehr;
                 """
                 self.execute(sql.format(name=name, schema=schema))
@@ -593,7 +593,7 @@ class DBConnection(object):
                 ELSE st_setsrid(st_makepoint(t.xkoord, t.ykoord), 3044)::geometry(Point, 3044)
                 END AS pnt
 
-                FROM {schema}.{table} AS t;
+                FROM "{schema}"."{table}" AS t;
                 """
                 try:
                     execute(sql_prep.format(pkey=zone_id, schema=schema,
@@ -658,7 +658,7 @@ class DBConnection(object):
                 {pnt_col_def} AS pnt,
                 {name_str}::text AS zone_name
 
-                FROM {schema}.{table} AS t;"""
+                FROM "{schema}"."{table}" AS t;"""
                 execute(sql_pnt.format(pkey=zone_id,
                                        schema=schema, table=table,
                                        name_str=name_str,
@@ -783,7 +783,7 @@ class DBConnection(object):
             wbk.save(filename)
 
     def db_table_to_shape_file(self, schema, table, process, filename,
-                               columns=None,  on_progress=None,
+                               columns=None, on_progress=None,
                                srid=None, on_finish=None):
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
@@ -799,12 +799,12 @@ class DBConnection(object):
             return
 
         if columns and len(columns) > 0:
-            columns = ['"\""{}"\""'.format(c) for c in columns]
+            columns = ['t."\""{}"\""'.format(c) for c in columns]
             columns = ','.join(columns)
         else:
             columns = '*'
 
-        sql = 'SELECT {columns} FROM {schema}.{table}'
+        sql = f'SELECT {columns}, v.geom FROM "{schema}"."{table}" t, vz.view_vz_aktuell_3044 v WHERE v.id = t.vz_id'
 
         pgsql2shp_cmd = (u'"{executable}" -f "{filename}" -h {host} -p {port} '
                          '-u {user} -P {password} {database} "{sql}"'.format(
@@ -815,9 +815,8 @@ class DBConnection(object):
                              port=db_config['port'],
                              user=db_config['username'],
                              password=db_config['password'],
-                             sql=sql.format(columns=columns,
-                                            schema=schema, table=table)
-        ))
+                             sql=sql,
+                         ))
 
         # call callback with standard error and output
         def progress():
@@ -837,7 +836,7 @@ class DBConnection(object):
 
     def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
-        columns = ['vz_id', 'zone_name', 'geom'] + columns
+        columns = ['vz_id', 'zone_name'] + columns
         self.db_table_to_shape_file(schema, table, process, filename,
                                    columns=columns, on_progress=on_progress,
                                    srid=srid, on_finish=on_finish)
