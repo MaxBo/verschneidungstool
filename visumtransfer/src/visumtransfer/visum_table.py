@@ -272,7 +272,7 @@ class VisumTable(metaclass=MetaClass):
         return df
 
     def add_row(self, row: recordclass):
-        self.add_rows([row])
+        self.add_rows([list(row)])
 
     def add_rows(self, rows: List[recordclass]):
         df2append = self.df_from_array(rows)
