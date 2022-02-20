@@ -105,11 +105,9 @@ class DBConnection(object):
 
         sql_cat = f"""
         SELECT tc.name
-        FROM {self.vt_schema}.table_categories AS tc,
-        {self.vt_schema}.column_definitions AS cd
-        WHERE tc.name = cd.table_category
-        AND cd.from_year <= {year}
-        AND cd.to_year >= {year}
+        FROM {self.vt_schema}.table_categories AS tc
+        WHERE tc.from_year <= {year}
+        AND tc.to_year >= {year}
         ORDER BY id
         """
         categories = self.fetch(sql_cat)
@@ -604,7 +602,11 @@ class DBConnection(object):
                        table: str,
                        columns: List[str],
                        filename: str):
-        columns = ['vz_id', 'zone_name'] + columns
+        cols_available = (c.column_name for c in self.get_column_names(schema, table))
+        id_cols = ['vz_id']
+        if 'zone_name' in cols_available:
+            id_cols.append('zone_name')
+        columns = id_cols + columns
         self.db_table_to_csv_file(schema, table, filename, columns=columns,
                                   order_by='vz_id')
 
@@ -619,7 +621,7 @@ class DBConnection(object):
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
-        with Connection(self.login) as conn:
+        with self.login.get_connection().begin() as conn:
             df = pd.read_sql(sql,
                              con=conn,
                              index_col='vz_id')
@@ -679,11 +681,11 @@ class DBConnection(object):
 
         sql = f'SELECT {columns} FROM "{schema}"."{table}"'
 
-        database = db_config['db_name'],
-        host = db_config['host'],
-        port = db_config['port'],
-        user = db_config['username'],
-        password = db_config['password'],
+        database = db_config['db_name']
+        host = db_config['host']
+        port = db_config['port']
+        user = db_config['username']
+        password = db_config['password']
 
         pgsql2shp_cmd = (f'"{pgsql2shp_path}" -f "{filename}" -h {host} -p {port} '
                          f'-u {user} -P {password} {database} "{sql}"')
@@ -705,7 +707,12 @@ class DBConnection(object):
 
     def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
-        columns = ['vz_id', 'zone_name', 'geom'] + columns
+        cols_available = (c.column_name for c in self.get_column_names(schema, table))
+        id_cols = ['vz_id']
+        if 'zone_name' in cols_available:
+            id_cols.append('zone_name')
+        id_cols.append('geom')
+        columns = id_cols + columns
         self.db_table_to_shape_file(schema, table, process, filename,
                                    columns=columns, on_progress=on_progress,
                                    srid=srid, on_finish=on_finish)
