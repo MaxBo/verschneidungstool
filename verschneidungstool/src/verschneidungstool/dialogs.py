@@ -562,9 +562,9 @@ class UploadAreaDialog(UploadShapeDialog):
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             msgBox.exec_()
 
-    def set_default_stops(self):
-        idx = self.hst_combo.currentIndex()
-        def_stop_id = self.hst_combo.itemData(idx)[0]
+    #def set_default_stops(self):
+        #idx = self.hst_combo.currentIndex()
+        #def_stop_id = self.hst_combo.itemData(idx)[0]
 
     def select_identifiers(self):
         '''
@@ -572,9 +572,6 @@ class UploadAreaDialog(UploadShapeDialog):
         ask for id and name of newly created zone
         '''
         self.upload_frame.setDisabled(True)
-        for id, name, schema, can_be_deleted in \
-            self.db_connection.get_stations_available():
-            self.hst_combo.addItem(name, [id])
 
         key_columns = self.db_connection.get_column_names(
             self.schema, self.name)
@@ -591,28 +588,6 @@ class UploadAreaDialog(UploadShapeDialog):
         self.OK_button.clicked.connect(self.set_identifiers)
         self.cancel_button.setDisabled(True)
         self.OK_button.setDisabled(False)
-
-
-class UploadStationDialog(UploadShapeDialog):
-    '''
-    dialog for uploading shapes to add stations (no second step)
-    '''
-    def __init__(self, db_connection, schemata, parent=None, on_finish=None,
-                 reserved_names=None, on_success=None, auto_args=None):
-        upload_function = db_connection.add_stations
-        super(UploadStationDialog, self).__init__(
-            db_connection, schemata, upload_function, parent=parent,
-            on_finish=on_finish, reserved_names=reserved_names,
-            on_success=on_success, auto_args=auto_args)
-        self.name_edit.setDisabled(True)
-
-    def upload(self):
-        success = super(UploadStationDialog, self).upload()
-        if success:
-            self.upload_frame.setDisabled(True)
-            self.OK_button.setDisabled(False)
-            self.OK_button.clicked.connect(self.close)
-            self.cancel_button.setDisabled(True)
 
 
 class SelectDialog(QtWidgets.QDialog):

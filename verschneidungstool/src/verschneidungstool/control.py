@@ -5,7 +5,7 @@ import psycopg2
 
 from verschneidungstool.main_view import Ui_MainWindow
 from verschneidungstool.model import DBConnection
-from verschneidungstool.dialogs import ConfigDialog, UploadAreaDialog, UploadStationDialog, ExecDownloadResultsShape, IntersectionDialog, DownloadTablesDialog, check_status, get_selected
+from verschneidungstool.dialogs import ConfigDialog, UploadAreaDialog, ExecDownloadResultsShape, IntersectionDialog, DownloadTablesDialog, check_status, get_selected
 from verschneidungstool.connection import Login
 from verschneidungstool.config import Config
 
@@ -26,9 +26,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.structure_tree.setHeaderItem(header)
         self.structure_tree.itemClicked.connect(check_status)
         self.add_layer_button.clicked.connect(self.upload_area_shape)
-        self.add_stations_button.clicked.connect(self.upload_station_shape)
+        #self.add_stations_button.clicked.connect(self.upload_station_shape)
         self.delete_layer_button.clicked.connect(self.remove_area)
-        self.delete_stations_button.clicked.connect(self.remove_stations)
+        #self.delete_stations_button.clicked.connect(self.remove_stations)
         self.intersect_button.clicked.connect(self.intersect)
         self.download_tables_button.clicked.connect(self.download_tables)
         # workaround: QT-Designer always sets this button to disabled, ignoring settings
@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionEinstellungen.triggered.connect(self.edit_settings)
 
         self.layer_combo.currentIndexChanged['QString'].connect(self.area_changed)
-        self.stations_combo.currentIndexChanged['QString'].connect(self.station_changed)
+        #self.stations_combo.currentIndexChanged['QString'].connect(self.station_changed)
         self.scenario_combo.currentIndexChanged['QString'].connect(self.render_structure)
 
         self.dbconnect_button.clicked.connect(self.db_reset)
@@ -50,8 +50,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         layer = self.layer_combo.currentText()
         config.settings['recent']['aggregations'] = layer
-        stations = self.stations_combo.currentText()
-        config.settings['recent']['stations'] = stations
+        #stations = self.stations_combo.currentText()
+        #config.settings['recent']['stations'] = stations
         scenario = self.scenario_combo.currentText()
         config.settings['recent']['scenario'] = scenario
         config.write()
@@ -121,8 +121,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # render main attributes
         if not self.refresh_attr(['schemata']):
             return False
-        if not self.render_stations():
-            return False
+        #if not self.render_stations():
+            #return False
         if not self.render_areas():
             return False
         if not self.render_scenarios():
@@ -141,29 +141,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.refresh_attr(['areas']):
             return False
         for (id, area_name, schema, table_name, can_be_deleted,
-             default_stops, results_schema, results_table,
              check_last_calculation) in self.areas:
             self.layer_combo.addItem(
                 area_name,
-                [id, schema, table_name, can_be_deleted, default_stops,
-                 results_schema, results_table, check_last_calculation])
+                [id, schema, table_name, can_be_deleted,
+                 check_last_calculation])
 
         layer = config.settings['recent']['aggregations']
         self.layer_combo.setCurrentText(layer)
         self.area_changed()
-        stations = config.settings['recent']['stations']
-        self.stations_combo.setCurrentText(stations)
-        self.station_changed()
-        return True
-
-    def render_stations(self):
-        self.stations_combo.clear()
-        if not self.refresh_attr(['stations']):
-            return False
-        for id, name, schema, can_be_deleted in self.stations:
-            self.stations_combo.addItem(name, [id, schema, can_be_deleted])
-
-        self.station_changed()
+        #stations = config.settings['recent']['stations']
+        #self.stations_combo.setCurrentText(stations)
+        #self.station_changed()
         return True
 
     def render_scenarios(self):
@@ -190,8 +179,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for attr in attributes:
                 if attr == 'areas':
                     self.areas = self.db_conn.get_areas_available()
-                if attr == 'stations':
-                    self.stations = self.db_conn.get_stations_available()
                 if attr == 'scenarios':
                     self.scenarios = self.db_conn.get_scenarios_available()
                 if attr == 'schemata':
@@ -222,8 +209,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         selected_data = self.layer_combo.itemData(idx)
         can_be_deleted = selected_data[3]
-        hst_id = selected_data[4]
-        check_last_calculation = selected_data[7]
+        check_last_calculation = selected_data[4]
 
         if can_be_deleted:
             self.delete_layer_button.setEnabled(True)
@@ -234,26 +220,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.intersect_frame.setEnabled(False)
         else:
             self.intersect_frame.setEnabled(True)
-
-        # select default stop
-        for i in reversed(range(self.stations_combo.count())):
-            if self.stations_combo.itemData(i)[0] == hst_id:
-                break
-        self.stations_combo.setCurrentIndex(i)
-
-    '''
-    enable/disable delete button depending on whether area can be deleted or not
-    '''
-    def station_changed(self):
-        idx = self.stations_combo.currentIndex()
-        # nothing selected (e.g. when triggered on clearance)
-        if idx < 0:
-            return
-        can_be_deleted = self.stations_combo.itemData(idx)[2]
-        if can_be_deleted:
-            self.delete_stations_button.setEnabled(True)
-        else:
-            self.delete_stations_button.setEnabled(False)
 
     '''
     initiate removal of the selected area (aggregation layer) from the database
@@ -282,33 +248,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msgBox.exec_()
 
         self.render_areas()
-
-    '''
-    initiate removal of the selected station from the database
-    '''
-    def remove_stations(self):
-        selected_data = self.stations_combo.itemData(
-            self.stations_combo.currentIndex())
-        can_be_deleted = selected_data[2]
-        # do nothing, if area can't be deleted (you shouldn't get here anyway,
-        # because button is disabled)
-        if not can_be_deleted:
-            return
-
-        schema = selected_data[1]
-        id = selected_data[0]
-        table_name = self.stations_combo.currentText()
-        success, msg = self.db_conn.drop_stations(id, table_name, schema)
-        if success:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Erfolg", msg)
-            msgBox.exec_()
-        else:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!", msg)
-            msgBox.exec_()
-
-        self.render_stations()
 
     def render_structure(self):
         '''
@@ -374,18 +313,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             table = auto_args['table_name']
             auto_close = True
 
-        station_idx = self.stations_combo.currentIndex()
-        station_table = self.stations_combo.currentText()
-        station_schema = self.stations_combo.itemData(station_idx)[1]
-        # set selected stations in db
-        try:
-            self.db_conn.set_current_stations(station_table, station_schema)
-        except psycopg2.ProgrammingError as e:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Fehler!", str(e))
-            msgBox.exec_()
-            return
-
         intersectDiag = IntersectionDialog(self.db_conn, schema,
                                            table, auto_close=auto_close)
         intersectDiag.exec_()
@@ -405,21 +332,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                   on_finish=self.render_areas,
                                   reserved_names=reserved_names,
                                   on_success=on_success, auto_args=auto_args)
-
-    def upload_station_shape(self, auto_args = None):
-        schemata = ['haltestellen'] # TODO: any other available schemata for stations?
-        reserved_names = [self.stations_combo.itemText(i)
-                          for i in range(self.stations_combo.count())]
-
-        #if successfully uploaded, select last area = new area
-        # (important: on_finish has to be executed first!)
-        def on_success():
-            self.stations_combo.setCurrentIndex(self.stations_combo.count() - 1)
-
-        upDiag = UploadStationDialog(
-            self.db_conn, schemata, parent=self, on_success=on_success,
-            on_finish=self.render_stations, reserved_names=reserved_names,
-            auto_args=auto_args)
 
     def download_tables(self):
         downloadDialog = DownloadTablesDialog(self.db_conn, parent=self)
@@ -468,12 +380,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             schema = selected_data[1]
             table = selected_data[2]
-            results_schema = selected_data[5]
-            results_table = selected_data[6]
+            #results_schema = selected_data[5]
+            #results_table = selected_data[6]
             scenario = str(self.scenario_combo.currentText())
-            station_idx = self.stations_combo.currentIndex()
-            station_table = self.stations_combo.currentText()
-            station_schema = self.stations_combo.itemData(station_idx)[1]
+            #station_idx = self.stations_combo.currentIndex()
+            #station_table = self.stations_combo.currentText()
+            #station_schema = self.stations_combo.itemData(station_idx)[1]
 
         else:
             selected_area = table = auto_args['table_name']
@@ -504,9 +416,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # set scenario (referenced by db-view on results)
         self.db_conn.set_current_scenario(scenario)
-
-        # set selected stations in db
-        self.db_conn.set_current_stations(station_table, station_schema)
 
         schema_resulttables = set(self.db_conn.get_column_definition(col, parent)['resulttable']
                                   for col, parent in selected_columns)

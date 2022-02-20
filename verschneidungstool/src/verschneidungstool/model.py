@@ -17,6 +17,7 @@ class DBConnection(object):
     def __init__(self, login):
         self.login = login
         self.colums_available = None
+        self.vt_schema = 'verschneidungstool'
 
     def fetch(self, sql):
         with Connection(login=self.login) as conn:
@@ -44,26 +45,18 @@ class DBConnection(object):
             conn.commit()
 
     def get_areas_available(self):
-        sql = """
-        SELECT id, area_name, schema, table_name, can_be_deleted, default_stops,
-        results_schema, results_table, check_last_calculation
-        FROM meta.areas_available
-        ORDER BY id
-        """
-        return self.fetch(sql)
-
-    def get_stations_available(self):
-        sql = """
-        SELECT id, name, schema, can_be_deleted
-        FROM meta.haltestellen_available
+        sql = f"""
+        SELECT id, area_name, schema, table_name, can_be_deleted,
+        check_last_calculation
+        FROM {self.vt_schema}.areas_available
         ORDER BY id
         """
         return self.fetch(sql)
 
     def get_scenarios_available(self):
-        sql = """
+        sql = f"""
         SELECT scenario
-        FROM meta.scenarios_available
+        FROM {self.vt_schema}.scenarios_available
         ORDER BY jahr, scenario
         """
         return self.fetch(sql)
@@ -71,32 +64,32 @@ class DBConnection(object):
     def get_year_of_scenario(self, scenario: str) -> str:
         sql = f"""
         SELECT jahr AS year
-        FROM meta.scenarios_available sa
+        FROM {self.vt_schema}.scenarios_available sa
         WHERE sa.scenario = '{scenario}'
         """
         return self.fetch(sql)
 
     def get_resulttables_available(self):
-        sql = """
+        sql = f"""
         SELECT schema_table, visum_class, long_format
-        FROM meta.resulttables_available
+        FROM {self.vt_schema}.resulttables_available
         ORDER BY schema_table
         """
         return self.fetch(sql)
 
     def get_tables_to_download(self):
-        sql = """
+        sql = f"""
         SELECT id, name, schema, tablename, category
-        FROM meta.tables_to_download
+        FROM {self.vt_schema}.tables_to_download
         ORDER BY category
         """
         return self.fetch(sql)
 
     def get_structure_available(self, year):
         if not self.colums_available:
-            sql_col_avail = """
+            sql_col_avail = f"""
             SELECT *
-            FROM meta.columns_available
+            FROM {self.vt_schema}.columns_available
             ORDER BY table_type, id
             """
             col_avail = self.fetch(sql_col_avail)
@@ -112,8 +105,8 @@ class DBConnection(object):
 
         sql_cat = f"""
         SELECT tc.name
-        FROM meta.table_categories AS tc,
-        meta.column_definitions AS cd
+        FROM {self.vt_schema}.table_categories AS tc,
+        {self.vt_schema}.column_definitions AS cd
         WHERE tc.name = cd.table_category
         AND cd.from_year <= {year}
         AND cd.to_year >= {year}
@@ -136,9 +129,9 @@ class DBConnection(object):
                 return coldef
 
     def get_schemata_available(self):
-        sql = """
+        sql = f"""
         SELECT name
-        FROM meta.schemata_available
+        FROM {self.vt_schema}.schemata_available
         """
         return self.fetch(sql)
 
@@ -147,141 +140,90 @@ class DBConnection(object):
         last = self.get_last_calculated()
         if schema == last[0].schema and table == last[0].table_name:
             return False,
-        ('{schema}.{table} kann nicht gelöscht werden,\n'
-         .format(schema=schema, table=table) +
+        (f'{schema}.{table} kann nicht gelöscht werden,\n'
          'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n'
          'Bitte führen Sie zunächst eine Verschneidung mit einer\n'
          'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
         # remove row from available schemata
-        sql_remove = """
-        DELETE FROM meta.areas_available
+        sql_remove = f"""
+        DELETE FROM {self.vt_schema}.areas_available
         WHERE id = {id}
         """
         # drop table
-        sql_drop = """
-        Drop TABLE IF EXISTS {schema}.{table}
+        sql_drop = f"""
+        Drop TABLE IF EXISTS "{schema}"."{table}"
         """
         try:
-            self.execute(sql_remove.format(id=id))
-            self.execute(sql_drop.format(schema=schema, table=table))
-            return True, 'Löschen von {schema}.{table} erfolgreich'.format(
-                schema=schema, table=table)
+            self.execute(sql_remove)
+            self.execute(sql_drop)
+            return True, f'Löschen von {schema}.{table} erfolgreich'
         except:
             return False, ('Ein datenbankinterner Fehler ist beim '
                            'Löschen aufgetreten')
 
-    def drop_stations(self, id, table, schema):
-
-        sql_check = """
-        SELECT area_name FROM meta.areas_available WHERE default_stops = {hst_id}
-        """
-
-        check = self.fetch(sql_check.format(hst_id=id))
-        if len(check) > 0:
-            msg = ('{schema}.{table} kann nicht gelöscht werden, '
-                   'da die Aggregationsstufen \n'
-                   .format(schema=schema, table=table))
-            for c in check:
-                msg += ' - ' + c.area_name + '\n'
-            msg += 'darauf verweisen!'
-            return False, msg
-
-        last = self.get_last_calculated()
-        if schema == last[0].hst_schema and table == last[0].hst_name:
-            return False, ('{schema}.{table} kann nicht gelöscht werden,\n'
-                           .format(schema=schema, table=table) +
-                           'da die letzte Verschneidung mit diesen'
-                           'Haltestellen erfolgte. \n\n'
-                           'Bitte führen Sie zunächst eine Verschneidung mit \n'
-                           'anderen Haltestellen durch, bevor Sie'
-                           'diese löschen.')
-        # remove row from available schemata
-        sql_remove = """
-        DELETE FROM meta.haltestellen_available
-        WHERE id = {id}
-        """
-        # drop table
-        sql_drop = """
-        Drop TABLE IF EXISTS {schema}.{table}
-        """
-        try:
-            self.execute(sql_remove.format(id=id))
-            self.execute(sql_drop.format(table=table, schema=schema))
-            return (True, 'Löschen von {schema}.{table} erfolgreich'
-                    .format(schema=schema, table=table))
-        except:
-            return (False, 'Ein datenbankinterner Fehler ist beim '
-                    'Löschen aufgetreten')
-
     def get_projections_available(self):
-        sql = """
+        sql = f"""
         SELECT *
-        FROM meta.projections_available
+        FROM {self.vt_schema}.projections_available
         ORDER BY srid
         """
         return self.fetch(sql)
 
     def add_projection(self, srid, description):
-        sql = """
-        INSERT INTO meta.projections_available (srid, description)
+        sql = f"""
+        INSERT INTO {self.vt_schema}.projections_available (srid, description)
         VALUES ('{srid}','{description}');
         """
-        return self.execute(sql.format(srid=srid, description=description))
+        return self.execute(sql)
 
     def get_srid(self, projection_data):
-        sql = """
-        SELECT prjtxt2epsg('{}')
+        sql = f"""
+        SELECT prjtxt2epsg('{projection_data}')
         """
-        return self.fetch(sql.format(projection_data))
+        return self.fetch(sql)
 
     def get_spatial_ref(self, srid):
-        sql = """
+        sql = f"""
         SELECT srtext
         FROM spatial_ref_sys
-        WHERE srid = {}
+        WHERE srid = {srid}
         """
-        return self.fetch(sql.format(srid))
+        return self.fetch(sql)
 
     def get_column_names(self, schema, table):
-        sql = """
+        sql = f"""
         SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = '{schema}'
         AND table_name = '{table}'
         """
-        return self.fetch(sql.format(schema=schema, table=table))
+        return self.fetch(sql)
 
     def get_pkey(self, schema, table):
         '''
         get the current primary key of given table
         '''
-        sql = """
+        sql = f"""
         SELECT a.attname
         FROM   pg_index i
         JOIN   pg_attribute a ON a.attrelid = i.indrelid
                              AND a.attnum = ANY(i.indkey)
-        WHERE  i.indrelid = '{schema}.{table}'::regclass
+        WHERE  i.indrelid = '"{schema}"."{table}"'::regclass
         AND    i.indisprimary;
         """
-        ret = [a.attname for a in self.fetch(sql.format(
-            schema=schema, table=table))]
+        ret = [a.attname for a in self.fetch(sql)]
         return ret
 
-    def set_zone(self, schema, table, hst_id, zone_id_column=None,
+    def set_zone(self, schema, table, zone_id_column=None,
                  zone_name_column=''):
         '''
-        set the columns with the zone-id, zone-name and default_stops for the given
+        set the columns with the zone-id, zone-name for the given
         area table makes an entry in the areas_available table, that this column is
         preferred as pkey
         returns True if successful
         returns False if not (e.g. column isn't unique, table doesn't exist)
         '''
 
-        # zone-id
-        sql_unique = """
-        ALTER TABLE {schema}.{table}
-        ADD UNIQUE ({column})
-        """
         try:
             pkey = self.get_pkey(schema, table)
         except Exception as e:
@@ -297,25 +239,24 @@ class DBConnection(object):
         else:
             # set custom zone-id column to unique to check if values are unique
             try:
-                self.execute(sql_unique.format(schema=schema,
-                                               table=table,
-                                               column=zone_id_column))
+                # zone-id
+                sql_unique = f"""
+                ALTER TABLE "{schema}"."{table}"
+                ADD UNIQUE ("{zone_id_column}")
+                """
+                self.execute(sql_unique)
             # catches all exception (e.g. if table doesn't exist)
             except Exception as e:
                 return False, e
 
-        sql_update = """
-        UPDATE meta.areas_available
-        SET pkey='{pkey}', zone_id='{zone_id}', zone_name='{zone_name}',
-        default_stops={hst_id}
+        sql_update = f"""
+        UPDATE {self.vt_schema}.areas_available
+        SET pkey='{pkey}', zone_id='{zone_id_column}', zone_name='{zone_name_column}'
         WHERE schema='{schema}'
         AND table_name='{table}'
         """
         # update the meta table
-        self.execute(sql_update.format(pkey=pkey, zone_id=zone_id_column,
-                                       zone_name=zone_name_column,
-                                       hst_id=hst_id,
-                                       schema=schema, table=table))
+        self.execute(sql_update)
         return True, ''
 
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
@@ -366,10 +307,8 @@ class DBConnection(object):
         #put tmp file in folder where this script is located
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
-        shp2pgsql_cmd = (u'"{executable}" {options} "{input_file}" '
-                         '{schema}.{table}"'.format(
-                             executable=shp2pgsql_path, options=options,
-                             input_file=shapefile, schema=schema, table=name)
+        shp2pgsql_cmd = (f'"{shp2pgsql_path}" {options} "{shapefile}" '
+                         f'"{schema}"."{table}"'
                          )
 
         def finished(exit_code, exit_status):
@@ -454,17 +393,16 @@ class DBConnection(object):
         def on_exit(exit_code, exit_status):
             if exit_code == 0:
                 # add new area to areas_available
-                sql = """
-                INSERT INTO meta.areas_available (area_name, schema, table_name, can_be_deleted)
-                VALUES ('{area_name}','{schema}', '{table}', 'TRUE');
+                sql = f"""
+                INSERT INTO {self.vt_schema}.areas_available (area_name, schema, table_name, can_be_deleted)
+                VALUES ('{name}','{schema}', '{table}', 'TRUE');
                 """
-                sql_alter = """
-                ALTER TABLE {schema}.{table}
-                OWNER TO verkehr;
+                sql_alter = f"""
+                ALTER TABLE "{schema}"."{table}"
+                OWNER TO group_osm;
                 """
-                self.execute(sql.format(
-                    area_name=name, schema=schema, table=name))
-                self.execute(sql_alter.format(schema=schema, table=name))
+                self.execute(sql)
+                self.execute(sql_alter)
                 if self.on_progress:
                     self.on_progress('<b>Upload erfolgreich</b><br>')
                 self.on_progress = None
@@ -479,59 +417,11 @@ class DBConnection(object):
                           on_progress=on_progress, srid=srid, on_exit=on_exit,
                           encoding=encoding)
 
-    def add_stations(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_finish=None, on_success=None,
-                 encoding='UTF-8'):
-        '''
-        add stations based on a given shapefile to the database, monitor the progress
-
-        @param schema - the schema the table will be created in
-        @param name - the name the area (= the table) gets
-        @param shapefile - the path to the shapefile to upload
-        @param process - QtCore.QProcess, process provided to upload shape into db
-        @param conversion - QtCore.QProcess, process provided to convert file
-        @param on_progress - optional, method expecting a string as a parameter
-        and an optional progress value (from 0 to 100)
-        @param on_finish - optional, additional callback, called when run
-        is finished
-        @param on_success - optional, additional callback, called when run was
-        successful
-        @param projection - optional, srid of the projection
-        '''
-
-        self.on_progress = on_progress
-
-        def on_exit(exit_code, exit_status):
-            if exit_code == 0:
-                # add new area to areas_available
-                sql = """
-                INSERT INTO meta.haltestellen_available (name, schema, can_be_deleted)
-                VALUES ('{name}','{schema}', 'TRUE');
-                """
-                sql_alter = """
-                ALTER TABLE {schema}.{table}
-                OWNER TO verkehr;
-                """
-                self.execute(sql.format(name=name, schema=schema))
-                self.execute(sql_alter.format(schema=schema, table=name))
-                if self.on_progress:
-                    self.on_progress('<b>Upload erfolgreich</b><br>')
-                self.on_progress = None
-            if on_finish:
-                on_finish()
-            # on_success hast to be called after on_finish (this one is
-            # called on error as well)
-            if exit_code == 0 and on_success:
-                on_success()
-
-        self.upload_shape(schema, name, shapefile, process, conversion_process,
-                          on_progress=on_progress, srid=srid, on_exit=on_exit,
-                          encoding=encoding)
-
-    def new_intersection(self, schema, table):
+    def new_intersection(self, schema, table, srid=25832):
         # set functions to scope of following class
         fetch = self.fetch
         execute = self.execute
+        vt_schema = self.vt_schema
 
         class Intersection(QtCore.QThread):
             progress = QtCore.pyqtSignal(str, int)
@@ -541,22 +431,22 @@ class DBConnection(object):
 
             def run(self):
 
-                sql_pkey = """
+                sql_pkey = f"""
                 SELECT pkey, zone_name, zone_id
-                FROM meta.areas_available
+                FROM {vt_schema}.areas_available
                 WHERE schema='{schema}'
                 AND table_name='{table}';
                 """
 
-                sql_queries = """
-                SELECT * FROM meta.queries ORDER BY id;
+                sql_queries = f"""
+                SELECT * FROM {vt_schema}.queries ORDER BY id;
                 """
 
                 try:
-                    row = fetch(sql_pkey.format(schema=schema, table=table))[0]
+                    row = fetch(sql_pkey)[0]
                 except IndexError:
-                    msg = ('Tabelle {schema}.{table}.\nnicht in der Datenbank '
-                           'vorhanden.'.format(schema=schema, table=table))
+                    msg = (f'Tabelle {schema}.{table}.\nnicht in der Datenbank '
+                           'vorhanden.')
                     self.error.emit(msg)
                     return
 
@@ -567,9 +457,9 @@ class DBConnection(object):
                 queries = fetch(sql_queries)
 
                 if (not pkey) or (not zone_id):
-                    msg = ('Fehlerhafter Eintrag für {schema}.{table}.\nEs '
+                    msg = (f'Fehlerhafter Eintrag für {schema}.{table}.\nEs '
                            'ist keine zone_id oder kein primary key angegeben.'
-                           .format(schema=schema, table=table))
+                           )
                     self.error.emit(msg)
                     return
 
@@ -578,27 +468,25 @@ class DBConnection(object):
                 if zone_name is None or zone_name == '':
                     name_str = "''"
                 else:
-                    name_str = 't."{zone_name}"'.format(zone_name=zone_name)
-                sql_prep = """
-                INSERT INTO meta.scenario (area_id, start_time, end_time, started, finished)
+                    name_str = f't."{zone_name}"'
+                sql_prep = f"""
+                INSERT INTO {vt_schema}.scenario (area_id, start_time, end_time, started, finished)
                 SELECT a.id, clock_timestamp(), NULL,  True, False
-                FROM meta.areas_available AS a
+                FROM {vt_schema}.areas_available AS a
                 WHERE a.schema = '{schema}' AND a.table_name = '{table}';
-                CREATE OR REPLACE VIEW vz.view_vz_aktuell_3044 (id, geom, zone_name. pnt) AS
+                CREATE OR REPLACE VIEW vz.view_vz_aktuell (vz_id, geom, zone_name, pnt) AS
                 SELECT
-                t."{pkey}"::integer AS id,
-                st_multi(st_transform(t.geom, 3044))::geometry(MULTIPOLYGON, 3044) AS geom,
+                t."{zone_id}"::integer AS vz_id,
+                st_multi(st_transform(t.geom, {srid}))::geometry(MULTIPOLYGON, {srid}) AS geom,
                 {name_str}::text AS zone_name,
-                CASE WHEN t.xkoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, 3044)
-                ELSE st_setsrid(st_makepoint(t.xkoord, t.ykoord), 3044)::geometry(Point, 3044)
+                CASE WHEN t.xkoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, {srid})
+                ELSE st_setsrid(st_makepoint(t.xkoord, t.ykoord), {srid})::geometry(Point, {srid})
                 END AS pnt
 
-                FROM {schema}.{table} AS t;
+                FROM "{schema}"."{table}" AS t;
                 """
                 try:
-                    execute(sql_prep.format(pkey=zone_id, schema=schema,
-                                            table=table,
-                                            name_str=name_str))
+                    execute(sql_prep)
                 except psycopg2.ProgrammingError as e:
                     self.error.emit(str(e))
                     return
@@ -621,13 +509,13 @@ class DBConnection(object):
 
                 self.progress.emit('Nachbereitungen laufen...', progress)
 
-                sql_post = """
-                UPDATE meta.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
-                FROM meta.areas_available AS a, meta.last_area_calculated AS l
+                sql_post = f"""
+                UPDATE {vt_schema}.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
+                FROM {vt_schema}.areas_available AS a, {vt_schema}.last_area_calculated AS l
                 WHERE a.schema='{schema}' AND a.table_name='{table}'
                 AND l.id = sc.id;
                 """
-                execute(sql_post.format(schema=schema, table=table))
+                execute(sql_post)
 
                 self.progress.emit('Verschneidung beendet!', 100)
 
@@ -636,55 +524,43 @@ class DBConnection(object):
             def add_pnt_column_if_exists(self, zone_id, name_str):
                 # add point column, if exists
                 col_pnt = 'pnt'
-                sql_col_exists = '''
+                sql_col_exists = f'''
                             SELECT EXISTS (SELECT 1
                             FROM information_schema.columns
                             WHERE table_schema='{schema}'
                             AND table_name='{table}'
-                            AND column_name='{col}');
+                            AND column_name='{col_pnt}');
                             '''
-                col_exists = fetch(sql_col_exists.format(schema=schema,
-                                                         table=table,
-                                                         col=col_pnt))
+                col_exists = fetch(sql_col_exists)
                 if col_exists[0][0]:
-                    pnt_col_def = 't.{}::geometry(POINT)'.format(col_pnt)
+                    pnt_col_def = f't."{col_pnt}"::geometry(POINT)'
                 else:
                     pnt_col_def = 'st_pointonsurface(t.geom)::geometry(POINT)'
 
-                sql_pnt = """
-                CREATE OR REPLACE VIEW vz.view_vz_aktuell_pnt (id, pnt, zone_name) AS
+                sql_pnt = f"""
+                CREATE OR REPLACE VIEW vz.view_vz_aktuell_pnt (vz_id, pnt, zone_name) AS
                 SELECT
-                t."{pkey}"::integer AS id,
+                t."{zone_id}"::integer AS vz_id,
                 {pnt_col_def} AS pnt,
                 {name_str}::text AS zone_name
 
-                FROM {schema}.{table} AS t;"""
-                execute(sql_pnt.format(pkey=zone_id,
-                                       schema=schema, table=table,
-                                       name_str=name_str,
-                                       pnt_col_def=pnt_col_def))
+                FROM "{schema}"."{table}" AS t;"""
+                execute(sql_pnt)
 
         thread = Intersection()
         return thread
 
     def set_current_scenario(self, scenario: str):
         sql = f"""
-        UPDATE meta.current_scenario
+        UPDATE {self.vt_schema}.current_scenario
         SET scenario='{scenario}'
         """
         self.execute(sql)
 
-    def set_current_stations(self, table, schema):
-        sql = """
-        UPDATE haltestellen.hst_selected
-        SET name='{name}', schema='{schema}'
-        """
-        self.execute(sql.format(name=table, schema=schema))
-
     def get_last_calculated(self):
-        sql = """
+        sql = f"""
         SELECT *
-        FROM meta.last_area_calculated
+        FROM {self.vt_schema}.last_area_calculated
         """
         return self.fetch(sql)
 
@@ -695,10 +571,10 @@ class DBConnection(object):
         warning: if a calculation is still running, new calculation may result
         in errors
         '''
-        sql = """
-        UPDATE meta.scenario
+        sql = f"""
+        UPDATE {self.vt_schema}.scenario
         SET finished = true
-        WHERE id = (SELECT max(id) FROM meta.scenario )
+        WHERE id = (SELECT max(id) FROM {self.vt_schema}.scenario )
         """
         self.execute(sql)
 
@@ -708,10 +584,6 @@ class DBConnection(object):
                              filename,
                              columns=None,
                              order_by=None):
-        sql = """
-        COPY (SELECT {columns}
-        FROM {schema}.{table}{order}) TO STDOUT WITH CSV HEADER
-        """
         order = f' ORDER BY "{order_by}"' if order_by in columns or len(columns) == 0 else ''
 
         if columns and len(columns) > 0:
@@ -720,11 +592,12 @@ class DBConnection(object):
         else:
             columns='*'
 
-
+        sql = f"""
+        COPY (SELECT {columns}
+        FROM "{schema}"."{table}"{order}) TO STDOUT WITH CSV HEADER
+        """
         with open(filename, 'w') as fileobject:
-            self.copy_expert(sql.format(
-                columns=columns, table=table, schema=schema, order=order),
-                             fileobject)
+            self.copy_expert(sql, fileobject)
 
     def results_to_csv(self,
                        schema: str,
@@ -804,20 +677,16 @@ class DBConnection(object):
         else:
             columns = '*'
 
-        sql = 'SELECT {columns} FROM {schema}.{table}'
+        sql = f'SELECT {columns} FROM "{schema}"."{table}"'
 
-        pgsql2shp_cmd = (u'"{executable}" -f "{filename}" -h {host} -p {port} '
-                         '-u {user} -P {password} {database} "{sql}"'.format(
-                             executable=pgsql2shp_path,
-                             filename=filename,
-                             database=db_config['db_name'],
-                             host=db_config['host'],
-                             port=db_config['port'],
-                             user=db_config['username'],
-                             password=db_config['password'],
-                             sql=sql.format(columns=columns,
-                                            schema=schema, table=table)
-        ))
+        database = db_config['db_name'],
+        host = db_config['host'],
+        port = db_config['port'],
+        user = db_config['username'],
+        password = db_config['password'],
+
+        pgsql2shp_cmd = (f'"{pgsql2shp_path}" -f "{filename}" -h {host} -p {port} '
+                         f'-u {user} -P {password} {database} "{sql}"')
 
         # call callback with standard error and output
         def progress():
@@ -830,8 +699,7 @@ class DBConnection(object):
             process.readyReadStandardOutput.connect(progress)
             process.readyReadStandardError.connect(progress)
 
-        on_progress('Konvertiere {schema}.{table} in {filename}'.format(
-            schema=schema, table=table, filename=filename))
+        on_progress(f'Konvertiere {schema}.{table} in {filename}')
         process.start(pgsql2shp_cmd)
 
 

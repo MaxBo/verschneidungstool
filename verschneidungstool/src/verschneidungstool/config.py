@@ -4,7 +4,7 @@ import os, sys, copy
 ENCODINGS = ['UTF-8', 'CP1252', 'ISO-8859-1']
 DEFAULT_ENCODING = 'UTF-8'
 
-DEFAULT_SRID = 3044
+DEFAULT_SRID = 25832
 DEFAULT_FILE = os.path.join(os.path.split((sys.argv)[0])[0], "config.xml")
 
 setting_struct = {
