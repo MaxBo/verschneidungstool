@@ -40,7 +40,7 @@ def startmain():
                         "bestimmt Datentyp: shp/csv/xls (Pflicht bei Download)",
                         dest="download_file")
 
-    parser.add_argument('-s', "--scenaio", action="store", type=int,
+    parser.add_argument('-s', "--scenario", action="store", type=int,
                         help="Szenario der herunterzuladenden Ergebnisse",
                         dest="scenario")
 
@@ -57,20 +57,20 @@ def startmain():
     parser.add_argument("--srid", action="store", default=DEFAULT_SRID,
                         type=int,
                         help="Projektion des Shapefiles bei Shapefile-Upload "
-                        "(default: {d})".format(d=DEFAULT_SRID),
+                        f"(default: {DEFAULT_SRID})",
                         dest="srid")
 
     DEFAULT_ColId = 'no'
     parser.add_argument("--gebiet_id", action="store", default=DEFAULT_ColId,
                         help="Spalte für ID bei Shapefile-Upload "
-                        "(Default: {d})".format(d=DEFAULT_ColId),
+                        f"(Default: {DEFAULT_ColId})",
                         dest="c_id")
 
     DEFAULT_ColName = 'name'
     parser.add_argument("--gebiet_name", action="store",
                         default=DEFAULT_ColName,
                         help="Spalte mit Gebietsnamen bei Shapefile-Upload "
-                        "(Default: {d})".format(d=DEFAULT_ColName),
+                        f"(Default: {DEFAULT_ColName})",
                         dest="c_name")
 
     arguments = parser.parse_args()

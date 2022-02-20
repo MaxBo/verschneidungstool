@@ -348,7 +348,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         selected_area = self.layer_combo.currentText()
         idx = self.layer_combo.currentIndex()
         selected_data = self.layer_combo.itemData(idx)
-        check_last_calculation = selected_data[7]
+        check_last_calculation = selected_data[4]
 
         if check_last_calculation and not last_calc[0].finished:
             msgBox = QtWidgets.QMessageBox(
@@ -494,6 +494,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for i, schema_resulttable in enumerate(schema_resulttables):
             append = i > 0
             results_schema, results_table = schema_resulttable.split('.')
+            results_schema = results_schema.strip('"')
+            results_table = results_table.strip('"')
+
             columns_for_resulttable = [
                 colname for colname, parent in selected_columns
                 if self.db_conn.get_column_definition(colname, parent)['resulttable']
