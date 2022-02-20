@@ -547,11 +547,11 @@ class UploadAreaDialog(UploadShapeDialog):
         # try to set zone with selected values, repeat if errors occure
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
-        idx = self.hst_combo.currentIndex()
-        hst_id = self.hst_combo.itemData(idx)[0]
+        #idx = self.hst_combo.currentIndex()
+        #hst_id = self.hst_combo.itemData(idx)[0]
 
         success, msg = self.db_connection.set_zone(
-            self.schema, self.name, hst_id,
+            self.schema, self.name,
             zone_id_column=id_key, zone_name_column=name_key)
 
         if success:
