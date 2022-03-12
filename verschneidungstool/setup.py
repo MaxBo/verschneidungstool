@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="verschneidungstool",
-    version="2.0.0",
+    version="2.0.1",
     url='https://github.com/MaxBo/verschneidungstool',
     author='Christoph Franke',
     description="graphical user interface for computing intersections on travel analysis zones",

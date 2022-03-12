@@ -625,6 +625,13 @@ class DBConnection(object):
             df = pd.read_sql(sql,
                              con=conn,
                              index_col='vz_id')
+        for col in columns[1:]:
+            if df[col].dtype.kind == 'f':
+                # cast floats back to nullable integers, if possible
+                try:
+                    df[col] = df[col].astype('Int32')
+                except TypeError:
+                    pass
         save_to_visum_transfer(df, filename, visum_classname, append, long_format)
 
     def results_to_excel(self,
@@ -679,7 +686,7 @@ class DBConnection(object):
         else:
             columns = '*'
 
-        sql = f'SELECT {columns} FROM "{schema}"."{table}"'
+        sql = f'SELECT {columns} FROM "\""{schema}"\""."\""{table}"\""'
 
         database = db_config['db_name']
         host = db_config['host']
@@ -711,6 +718,25 @@ class DBConnection(object):
         id_cols = ['vz_id']
         if 'zone_name' in cols_available:
             id_cols.append('zone_name')
+        with self.login.get_connection().begin() as conn:
+            df_columns = pd.read_sql(f'''SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = %s
+            AND table_name = %s;''',
+                                   conn,
+                                   params=(schema, table),
+                                   index_col='column_name')
+        try:
+            df_columns.loc['geom']
+        except KeyError:
+            on_progress(f'skip "{schema}"."{table}" because no geom-column defined')
+            return
+
+        for col in columns:
+            if not col in df_columns.index:
+                on_progress(f'column {col} not in "{schema}"."{table}"')
+                return
+
         id_cols.append('geom')
         columns = id_cols + columns
         self.db_table_to_shape_file(schema, table, process, filename,
