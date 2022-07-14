@@ -8,3 +8,4 @@ lxml
 xlwt
 pyqt5
 tables
+sqlalchemy
