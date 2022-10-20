@@ -230,7 +230,7 @@ class VisumTable(metaclass=MetaClass):
                   quoting=csv.QUOTE_NONE,
                   header=False,
                   index=False,
-                  line_terminator='\n')
+                  lineterminator='\n')
         fobj.writeln('')
 
     @property
