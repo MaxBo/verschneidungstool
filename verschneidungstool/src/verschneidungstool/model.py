@@ -626,12 +626,20 @@ class DBConnection(object):
                              con=conn,
                              index_col='vz_id')
         for col in columns[1:]:
+            # cast floats back to nullable integers, if possible
             if df[col].dtype.kind == 'f':
-                # cast floats back to nullable integers, if possible
                 try:
                     df[col] = df[col].astype('Int32')
                 except TypeError:
                     pass
+            # cast empty column from text to float
+            if df[col].dtype.kind == 'O':
+                if pd.isna(df[col]).all():
+                    try:
+                        df[col] = df[col].astype('float64')
+                    except TypeError:
+                        pass                    
+                
         save_to_visum_transfer(df, filename, visum_classname, append, long_format)
 
     def results_to_excel(self,
