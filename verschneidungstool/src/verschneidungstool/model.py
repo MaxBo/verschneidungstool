@@ -437,7 +437,7 @@ class DBConnection(object):
                 """
 
                 sql_queries = f"""
-                SELECT * FROM {vt_schema}.queries ORDER BY id;
+                SELECT * FROM {vt_schema}.queries ORDER BY section, id;
                 """
 
                 try:
@@ -577,11 +577,21 @@ class DBConnection(object):
         self.execute(sql)
 
 
+    def refresh_materialized_views(self):
+        """refresh materialized views before exporting data of a scenario"""
+        sql_queries = f"""
+        SELECT * FROM {self.vt_schema}.queries WHERE section = 10 ORDER BY section, id;
+        """
+        queries = self.fetch(sql_queries)
+        for query in queries:
+            self.execute(query.command)
+
     # empty column array selects all columns (*)
     def db_table_to_csv_file(self, schema, table,
                              filename,
                              columns=None,
                              order_by=None):
+        self.refresh_materialized_views()
         order = f' ORDER BY "{order_by}"' if order_by in columns or len(columns) == 0 else ''
 
         if columns and len(columns) > 0:
@@ -602,6 +612,7 @@ class DBConnection(object):
                        table: str,
                        columns: List[str],
                        filename: str):
+        self.refresh_materialized_views()
         cols_available = (c.column_name for c in self.get_column_names(schema, table))
         id_cols = ['vz_id']
         if 'zone_name' in cols_available:
@@ -618,6 +629,7 @@ class DBConnection(object):
                                   visum_classname: str = 'Bezirke',
                                   append: bool = False,
                                   long_format: bool = False):
+        self.refresh_materialized_views()
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -638,8 +650,8 @@ class DBConnection(object):
                     try:
                         df[col] = df[col].astype('float64')
                     except TypeError:
-                        pass                    
-                
+                        pass
+
         save_to_visum_transfer(df, filename, visum_classname, append, long_format)
 
     def results_to_excel(self,
@@ -649,6 +661,7 @@ class DBConnection(object):
                          filename: str,
                          visum_classname: str = 'Bezirke',
                          append: bool = False):
+        self.refresh_materialized_views()
         tmp_dir = tempfile.mkdtemp()
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
         self.results_to_csv(schema, table, columns, tmp_filename)
@@ -675,6 +688,7 @@ class DBConnection(object):
     def db_table_to_shape_file(self, schema, table, process, filename,
                                columns=None,  on_progress=None,
                                srid=None, on_finish=None):
+        self.refresh_materialized_views()
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
 
@@ -722,6 +736,7 @@ class DBConnection(object):
 
     def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
+        self.refresh_materialized_views()
         cols_available = (c.column_name for c in self.get_column_names(schema, table))
         id_cols = ['vz_id']
         if 'zone_name' in cols_available:
