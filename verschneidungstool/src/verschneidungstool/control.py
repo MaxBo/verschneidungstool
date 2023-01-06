@@ -261,18 +261,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.structure_tree.clear()
         scenario = str(self.scenario_combo.currentText())
         year = self.db_conn.get_year_of_scenario(scenario)[0].year
-        structure = self.db_conn.get_structure_available(year)
-        for cat, cols in structure.items():
-            cat_item = QtWidgets.QTreeWidgetItem(self.structure_tree, [cat])
-            cat_item.setCheckState(0,QtCore.Qt.Unchecked)
-            cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                              QtCore.Qt.ItemIsEnabled)
-            for col in cols:
-                col_item = QtWidgets.QTreeWidgetItem(cat_item, [col['name']])
-                col_item.setText(1, col['description'])
-                col_item.setCheckState(0,QtCore.Qt.Unchecked)
-                col_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                                  QtCore.Qt.ItemIsEnabled)
+        groups = self.db_conn.get_structure_groups_available(year)
+        for group, structure in groups.items():
+            group_item = QtWidgets.QTreeWidgetItem(self.structure_tree, [group])
+            group_item.setCheckState(0, QtCore.Qt.Unchecked)
+            group_item.setFlags(QtCore.Qt.ItemIsUserCheckable
+                                | QtCore.Qt.ItemIsEnabled)
+            for cat, cols in structure.items():
+                cat_item = QtWidgets.QTreeWidgetItem(group_item, [cat])
+                cat_item.setCheckState(0, QtCore.Qt.Unchecked)
+                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable
+                                  | QtCore.Qt.ItemIsEnabled)
+                for col in cols:
+                    col_item = QtWidgets.QTreeWidgetItem(cat_item, [col['name']])
+                    col_item.setText(1, col['description'])
+                    col_item.setCheckState(0, QtCore.Qt.Unchecked)
+                    col_item.setFlags(QtCore.Qt.ItemIsUserCheckable
+                                      | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
 
     def edit_settings(self):

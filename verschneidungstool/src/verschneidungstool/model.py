@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List
+from collections import defaultdict
 import psycopg2
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
@@ -85,7 +86,7 @@ class DBConnection(object):
         """
         return self.fetch(sql)
 
-    def get_structure_available(self, year):
+    def get_structure_groups_available(self, year):
         if not self.colums_available:
             sql_col_avail = f"""
             SELECT *
@@ -104,18 +105,18 @@ class DBConnection(object):
                 })
 
         sql_cat = f"""
-        SELECT tc.name
+        SELECT tc.name, tc.group
         FROM {self.vt_schema}.table_categories AS tc
         WHERE tc.from_year <= {year}
         AND tc.to_year >= {year}
         ORDER BY id
         """
         categories = self.fetch(sql_cat)
-        structure = {}
-
+        groups = defaultdict(dict)
         for record in categories:
+            structure = groups[record.group]
             structure[record.name] = self.colums_available.get(record.name, dict())
-        return structure
+        return groups
 
     def get_column_definition(self, colname: str, parent: str):
         """

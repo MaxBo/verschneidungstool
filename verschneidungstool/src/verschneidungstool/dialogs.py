@@ -79,28 +79,38 @@ def check_status(item):
         else:
             parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
     # given item is category -> check or uncheck all children
-    elif item.checkState(0) != QtCore.Qt.PartiallyChecked:
+    if item.checkState(0) != QtCore.Qt.PartiallyChecked:
         state = item.checkState(0)
-        child_count = item.childCount()
-        for i in range(child_count):
-            item.child(i).setCheckState(0, state)
+        check_children(item, state)
+
+
+def check_children(item, state):
+    child_count = item.childCount()
+    for i in range(child_count):
+        child = item.child(i)
+        child.setCheckState(0, state)
+        check_children(child, state)
+
 
 '''
 returns a list of all checked sub-categories in the tree view
 '''
 def get_selected(tree, get_all=False):
     root = tree.invisibleRootItem()
-    cat_count = root.childCount()
+    group_count = root.childCount()
     checked = []
-    # iterate categories
-    for i in range(cat_count):
-        cat_item = root.child(i)
-        col_count = cat_item.childCount()
-        # get checked sub-categories
-        for j in range(col_count):
-            col_item = cat_item.child(j)
-            if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
-                checked.append(col_item)
+    for g in range(group_count):
+        cat = root.child(g)
+        cat_count = cat.childCount()
+        # iterate categories
+        for i in range(cat_count):
+            cat_item = cat.child(i)
+            col_count = cat_item.childCount()
+            # get checked sub-categories
+            for j in range(col_count):
+                col_item = cat_item.child(j)
+                if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
+                    checked.append(col_item)
     return checked
 
 def set_file(parent, line_edit, directory=None, filters=[ALL_FILES_FILTER],
