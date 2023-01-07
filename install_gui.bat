@@ -1,5 +1,5 @@
 REM call conda create -y -n verschneidungstool39
-REM python=3.9 setuptools pyqt=5 numpy psycopg2 xlwt lxml pip pandas openpyxl xarray pytest pytables
+REM python=3.9 setuptools pyqt=5 numpy psycopg2 xlwt lxml pip pandas openpyxl xarray pytest pytables sqlalchemy
 call conda activate strukturdaten
 call python -m pip install -r requirements.txt
 cd visumtransfer
