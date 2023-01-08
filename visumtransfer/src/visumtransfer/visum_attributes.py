@@ -10,7 +10,7 @@ class VisumAttributes:
     purpose is to automatically create the VisumTable classes
     """
     @classmethod
-    def from_excel(cls, h5file: str, visum_version: int = 20, language='Deu'):
+    def from_excel(cls, h5file: str, visum_version: int = 2023, language='Deu'):
 
         self = super().__new__(cls)
         visum_attribute_file = 'attribute.xlsx'
@@ -19,7 +19,7 @@ class VisumAttributes:
         self.tables = pd.read_excel(fn, sheet_name='Tables', usecols=5)\
             .set_index('Name')
         self.attributes = pd.read_excel(fn, sheet_name='Attributes',
-                                        usecols=19)\
+                                        usecols=24)\
             .set_index(['Object', 'AttributeID'])
         self.relations = pd.read_excel(fn, sheet_name='Relation', usecols=7)\
             .set_index(['TabFrom', 'TabTo', 'RoleName'])
