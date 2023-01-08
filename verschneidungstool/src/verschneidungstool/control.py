@@ -421,6 +421,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # set scenario (referenced by db-view on results)
         self.db_conn.set_current_scenario(scenario)
+        self.db_conn.refresh_materialized_views()
 
         schema_resulttables = set(self.db_conn.get_column_definition(col, parent)['resulttable']
                                   for col, parent in selected_columns)
@@ -496,6 +497,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         resulttables_available = {r.schema_table: r
                                   for r in self.db_conn.get_resulttables_available()}
 
+
+        column_categories = self.db_conn.get_column_categories()
+        categories = set()
+
         for i, schema_resulttable in enumerate(schema_resulttables):
             append = i > 0
             results_schema, results_table = schema_resulttable.split('.')
@@ -506,6 +511,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 colname for colname, parent in selected_columns
                 if self.db_conn.get_column_definition(colname, parent)['resulttable']
                 == schema_resulttable]
+
+            category = column_categories.loc[columns_for_resulttable, 'category'].unique()[0]
+            categories.add(category)
+
             visum_classname = resulttables_available[schema_resulttable].visum_class
             long_format = resulttables_available[schema_resulttable].long_format
             if several_resulttables:
@@ -522,18 +531,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                               columns_for_resulttable, filename,
                                               visum_classname, append)
             elif tra:
-                self.db_conn.results_to_visum_transfer(results_schema,
-                                                       results_table,
-                                                       columns_for_resulttable,
-                                                       filename,
-                                                       visum_classname,
-                                                       append,
-                                                       long_format)
+                self.db_conn.results_to_visum_transfer(
+                    results_schema,
+                    results_table,
+                    columns_for_resulttable,
+                    filename,
+                    category,
+                    visum_classname,
+                    append,
+                    long_format)
             elif shp:
                 diag = ExecDownloadResultsShape(
                     self.db_conn, results_schema, results_table, columns_for_resulttable,
                     fn, parent=self, auto_close=auto_close)
                 diag.exec_()
 
+        if tra:
+            self.db_conn.prepend_categories(filename, categories)
         if csv or xlsx or tra:
             msg_box.close()

@@ -4,7 +4,8 @@ from collections import defaultdict
 import psycopg2
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
-from verschneidungstool.save2visumtransfer import save_to_visum_transfer
+from verschneidungstool.save2visumtransfer import (save_to_visum_transfer,
+                                                   prepend_categories)
 from PyQt5 import QtCore
 import tempfile, os, shutil, re
 import csv
@@ -105,7 +106,7 @@ class DBConnection(object):
                 })
 
         sql_cat = f"""
-        SELECT tc.name, tc.group
+        SELECT tc.name, tc.group, tc.category
         FROM {self.vt_schema}.table_categories AS tc
         WHERE tc.from_year <= {year}
         AND tc.to_year >= {year}
@@ -117,6 +118,19 @@ class DBConnection(object):
             structure = groups[record.group]
             structure[record.name] = self.colums_available.get(record.name, dict())
         return groups
+
+    def get_column_categories(self) -> pd.DataFrame:
+        """get the categories of the columns"""
+        sql = f"""
+        SELECT
+        c.column,
+        tc.category
+        FROM {self.vt_schema}.table_categories AS tc,
+        {self.vt_schema}.columns_available c
+        WHERE c.table_type = tc.name;
+        """
+        df = pd.DataFrame(self.fetch(sql)).set_index('column')
+        return df
 
     def get_column_definition(self, colname: str, parent: str):
         """
@@ -622,15 +636,22 @@ class DBConnection(object):
         self.db_table_to_csv_file(schema, table, filename, columns=columns,
                                   order_by='vz_id')
 
+    def prepend_categories(self,
+                           filename: str,
+                           categories: set):
+        """add categories to transfer file"""
+        prepend_categories(filepath=filename, categories=categories)
+
     def results_to_visum_transfer(self,
                                   schema: str,
                                   table: str,
                                   columns: List[str],
                                   filename: str,
+                                  category: str,
                                   visum_classname: str = 'Bezirke',
                                   append: bool = False,
-                                  long_format: bool = False):
-        self.refresh_materialized_views()
+                                  long_format: bool = False,
+                                  ) -> set:
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -653,7 +674,12 @@ class DBConnection(object):
                     except TypeError:
                         pass
 
-        save_to_visum_transfer(df, filename, visum_classname, append, long_format)
+        save_to_visum_transfer(df=df,
+                               filepath=filename,
+                               visum_classname=visum_classname,
+                               append=append,
+                               long_format=long_format,
+                               category=category)
 
     def results_to_excel(self,
                          schema: str,

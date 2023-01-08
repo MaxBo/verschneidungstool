@@ -1,6 +1,7 @@
 import pandas as pd
 from visumtransfer.visum_table import VisumTransfer, VisumTable
-from visumtransfer.visum_tables import (BenutzerdefiniertesAttribut,
+from visumtransfer.visum_tables import (BenutzerdefinierteGruppe,
+                                        BenutzerdefiniertesAttribut,
                                         Bezirke,
                                         Oberbezirk,
                                         Gebiete,
@@ -11,6 +12,7 @@ from visumtransfer.visum_tables import (BenutzerdefiniertesAttribut,
 
 def save_to_visum_transfer(df: pd.DataFrame,
                            filepath: str,
+                           category: str,
                            visum_classname: str = 'Bezirke',
                            append: bool = False,
                            long_format: bool=False):
@@ -56,7 +58,10 @@ def save_to_visum_transfer(df: pd.DataFrame,
         for colname in df.columns:
             col = df[colname]
             datatype = dtype2datatype.get(col.dtype.kind, 'Double')
-            userdefined.add_daten_attribute(Level.code, colname, datentyp=datatype)
+            userdefined.add_daten_attribute(Level.code,
+                                            colname,
+                                            datentyp=datatype,
+                                            benutzerdefiniertergruppenname=category)
 
         df.index.name = zones.pkey[0]
         zones.df = df
@@ -68,3 +73,14 @@ def save_to_visum_transfer(df: pd.DataFrame,
     else:
         transfer.write(filepath)
 
+
+def prepend_categories(filepath: str, categories: set):
+    """Prepend userdefined groups to transfer file"""
+    transfer = VisumTransfer.new_transfer()
+    userdefgroups = BenutzerdefinierteGruppe(mode='+')
+    transfer.add_table(userdefgroups)
+
+    for category in categories:
+        userdefgroups.upsert(name=category)
+
+    transfer.prepend(filepath)
