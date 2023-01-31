@@ -174,8 +174,11 @@ class VisumTable(metaclass=MetaClass):
         self.Row = recordclass(typename=self.code,
                                fields=[c.lower().translate(self.trantab)
                                        for c in self.cols])
-        self.Row.__new__.__defaults__ = tuple(self._defaults.get(c.upper(), '')
-                                              for c in self.cols)
+        fields = [c.lower().translate(self.trantab) for c in self.cols]
+        defaults = tuple(self._defaults.get(c.upper(), '') for c in self.cols)
+        self.Row = recordclass(typename=self.code,
+                               fields=fields,
+                               defaults=defaults)
 
     @property
     def cols(self) -> List[str]:
@@ -230,7 +233,7 @@ class VisumTable(metaclass=MetaClass):
                   quoting=csv.QUOTE_NONE,
                   header=False,
                   index=False,
-                  line_terminator='\n')
+                  lineterminator='\n')
         fobj.writeln('')
 
     @property
