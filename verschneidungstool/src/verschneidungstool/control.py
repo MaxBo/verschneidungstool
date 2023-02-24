@@ -279,6 +279,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     col_item.setFlags(QtCore.Qt.ItemIsUserCheckable
                                       | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
+        self.db_conn.set_current_scenario(scenario)
+        self.db_conn.refresh_materialized_views()
 
     def edit_settings(self):
         diag = ConfigDialog(self)  #, on_change=self.dbreset)
