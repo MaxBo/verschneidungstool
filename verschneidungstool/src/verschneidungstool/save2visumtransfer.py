@@ -48,7 +48,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
         transfer.add_table(visum_table)
 
     else:
-        userdefined = BenutzerdefiniertesAttribut(mode='+')
+        userdefined = BenutzerdefiniertesAttribut(mode='')
         zones = Level(mode='*')
         dtype2datatype = {'f': 'Double',
                           'i': 'Int',
