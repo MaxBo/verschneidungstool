@@ -5,6 +5,8 @@ import psycopg2
 from psycopg2.extras import NamedTupleConnection, DictCursor
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from collections import OrderedDict
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 
 from types import MethodType
 import os
@@ -36,6 +38,11 @@ class Login(object):
         msg = 'host={h}, port={p}, user={U}, password={pw}, db={db}'
         return msg.format(h=self.host, p=self.port, U=self.user,
                           pw=self.password, db=self.db)
+
+    def get_connection(self) -> Engine:
+        engine = create_engine(f'postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}',
+                               connect_args={'sslmode':'require'})
+        return engine
 
 
 class Connection(object):

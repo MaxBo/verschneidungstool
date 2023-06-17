@@ -58,7 +58,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
             datatype = dtype2datatype.get(col.dtype.kind, 'Double')
             userdefined.add_daten_attribute(Level.code, colname, datentyp=datatype)
 
-        df.index.name = zones.pkey
+        df.index.name = zones.pkey[0]
         zones.df = df
 
         transfer.add_table(userdefined)

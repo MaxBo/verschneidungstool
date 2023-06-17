@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="verschneidungstool",
-    version="1.8.0",
+    version="1.8.1",
     url='https://github.com/MaxBo/verschneidungstool',
     author='Christoph Franke',
     description="graphical user interface for computing intersections on travel analysis zones",
@@ -30,7 +30,8 @@ setup(
         'setuptools',
         'psycopg2',
         'lxml',
-        'openpyxl'
+        'openpyxl',
+        'sqlalchemy',
     ],
 
     # PyQT 4 needed, no disutils available for the package.

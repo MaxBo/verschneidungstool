@@ -746,10 +746,19 @@ class DBConnection(object):
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
-        with Connection(self.login) as conn:
+        with self.login.get_connection().begin() as conn:
             df = pd.read_sql(sql,
                              con=conn,
                              index_col='vz_id')
+        for col in columns[1:]:
+            if df[col].dtype.kind == 'f':
+                # cast floats back to nullable integers, if possible
+                try:
+                    df[col] = df[col].astype('Int32')
+                except TypeError:
+                    pass
+
+
         save_to_visum_transfer(df, filename, visum_classname, append, long_format)
 
     def results_to_excel(self,
