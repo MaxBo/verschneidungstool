@@ -652,6 +652,7 @@ class DBConnection(object):
                                   append: bool = False,
                                   long_format: bool = False,
                                   ) -> set:
+        self.refresh_materialized_views()
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -688,7 +689,6 @@ class DBConnection(object):
                          filename: str,
                          visum_classname: str = 'Bezirke',
                          append: bool = False):
-        self.refresh_materialized_views()
         tmp_dir = tempfile.mkdtemp()
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')
         self.results_to_csv(schema, table, columns, tmp_filename)
@@ -763,7 +763,6 @@ class DBConnection(object):
 
     def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
-        self.refresh_materialized_views()
         cols_available = (c.column_name for c in self.get_column_names(schema, table))
         id_cols = ['vz_id']
         if 'zone_name' in cols_available:

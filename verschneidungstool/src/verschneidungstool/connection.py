@@ -9,7 +9,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
 from types import MethodType
-import os
 
 import logging
 logger = logging.getLogger()

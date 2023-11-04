@@ -280,7 +280,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                       | QtCore.Qt.ItemIsEnabled)
         self.structure_tree.resizeColumnToContents(0)
         self.db_conn.set_current_scenario(scenario)
-        self.db_conn.refresh_materialized_views()
 
     def edit_settings(self):
         diag = ConfigDialog(self)  #, on_change=self.dbreset)
@@ -387,12 +386,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             schema = selected_data[1]
             table = selected_data[2]
-            #results_schema = selected_data[5]
-            #results_table = selected_data[6]
             scenario = str(self.scenario_combo.currentText())
-            #station_idx = self.stations_combo.currentIndex()
-            #station_table = self.stations_combo.currentText()
-            #station_schema = self.stations_combo.itemData(station_idx)[1]
 
         else:
             selected_area = table = auto_args['table_name']
@@ -423,7 +417,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # set scenario (referenced by db-view on results)
         self.db_conn.set_current_scenario(scenario)
-        self.db_conn.refresh_materialized_views()
 
         schema_resulttables = set(self.db_conn.get_column_definition(col, parent)['resulttable']
                                   for col, parent in selected_columns)
