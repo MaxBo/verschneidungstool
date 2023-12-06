@@ -1,3 +1,3 @@
-call activate verschneidungstool_2023
+call activate verschneidungstool_310_2023
 call verschneidungstool
 exit
