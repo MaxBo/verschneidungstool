@@ -1,3 +1,3 @@
-call conda activate verschneidungstool39
+call mamba activate verschneidungstool_reghan
 call verschneidungstool
 exit

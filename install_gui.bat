@@ -1,8 +1,8 @@
-call conda create -y -n verschneidungstool_reghan python=3.9 setuptools pyqt=5 numpy psycopg2 xlwt lxml pip pandas openpyxl xarray pytest pytables
-call conda activate verschneidungstool_reghan
-cd visumtransfer
+call mamba create -y -n verschneidungstool_reghan python=3.10 setuptools pyqt=5.12 numpy psycopg2 xlwt lxml pip pandas openpyxl xarray pytest pytables
+call mamba activate verschneidungstool_reghan
+cd visumtransfer\visumtransfer
 call python -m pip install .
-cd ..\verschneidungstool
+cd ..\..\verschneidungstool
 call python -m pip install .
 cd ..
 echo.
