@@ -1,4 +1,4 @@
-pandas
+pandas<2.2
 xarray
 openpyxl
 recordclass
@@ -8,4 +8,4 @@ lxml
 xlwt
 pyqt5
 tables
-sqlalchemy
+sqlalchemy<2.0
