@@ -595,7 +595,7 @@ class DBConnection(object):
     def refresh_materialized_views(self):
         """refresh materialized views before exporting data of a scenario"""
         sql_queries = f"""
-        SELECT * FROM {self.vt_schema}.queries WHERE section = 10 ORDER BY section, id;
+        SELECT * FROM {self.vt_schema}.queries WHERE section >= 9 ORDER BY section, id;
         """
         queries = self.fetch(sql_queries)
         for query in queries:
