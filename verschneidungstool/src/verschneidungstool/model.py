@@ -2,6 +2,7 @@
 from typing import List
 from collections import defaultdict
 import psycopg2
+from sqlalchemy.sql import text
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
 from verschneidungstool.save2visumtransfer import (save_to_visum_transfer,
@@ -594,12 +595,33 @@ class DBConnection(object):
 
     def refresh_materialized_views(self):
         """refresh materialized views before exporting data of a scenario"""
+
+        sql = '''
+        SELECT 1 FROM verschneidungstool.scenarios_available sa,
+        verschneidungstool.current_scenario s
+        WHERE s.scenario = sa.scenario AND sa.current;
+        '''
+        rows = self.fetch(sql)
+        if rows:
+            # the current scenario is up to date skip refreshing the materialized view
+            return
+
+        # refresh the materialized views from queries (section >= 9)
         sql_queries = f"""
         SELECT * FROM {self.vt_schema}.queries WHERE section >= 9 ORDER BY section, id;
         """
         queries = self.fetch(sql_queries)
         for query in queries:
             self.execute(query.command)
+
+        # set the current scenario current
+        sql = '''
+        UPDATE verschneidungstool.scenarios_available sa
+        SET current = (s.scenario = sa.scenario)
+        FROM verschneidungstool.current_scenario s
+        ;
+        '''
+        self.execute(sql)
 
     # empty column array selects all columns (*)
     def db_table_to_csv_file(self, schema, table,
@@ -627,7 +649,6 @@ class DBConnection(object):
                        table: str,
                        columns: List[str],
                        filename: str):
-        self.refresh_materialized_views()
         cols_available = (c.column_name for c in self.get_column_names(schema, table))
         id_cols = ['vz_id']
         if 'zone_name' in cols_available:
@@ -808,9 +829,9 @@ def parse_projection_data(data):
     '''
     parse and return the projcs and geogcs description out of a projection-string
     '''
-    projcs_pattern = 'PROJCS\["(.*?)",'
+    projcs_pattern = r'PROJCS\["(.*?)",'
     projcs_matches = re.findall(projcs_pattern, data)
-    geogcs_pattern = 'GEOGCS\["(.*?)",'
+    geogcs_pattern = r'GEOGCS\["(.*?)",'
     geogcs_matches = re.findall(geogcs_pattern, data)
 
     projcs = projcs_matches[0] if len(projcs_matches) > 0 else None
