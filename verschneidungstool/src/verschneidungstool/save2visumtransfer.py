@@ -77,7 +77,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
 def prepend_categories(filepath: str, categories: set):
     """Prepend userdefined groups to transfer file"""
     transfer = VisumTransfer.new_transfer()
-    userdefgroups = BenutzerdefinierteGruppe(mode='+')
+    userdefgroups = BenutzerdefinierteGruppe(mode='')
     transfer.add_table(userdefgroups)
 
     for category in categories:
