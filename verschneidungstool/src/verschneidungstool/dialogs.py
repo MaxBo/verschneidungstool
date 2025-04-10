@@ -304,9 +304,9 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
         # add available projections to combobox
         for p in projections_available:
             self.projection_combo.addItem(
-                "{0} - {1}".format(p.srid, p.description),
+                "{0} - {1}".format(p.srid, p.name),
                 # data: srid, description, not in database
-                [p.srid, p.description, False])
+                [p.srid, p.name, False])
 
         self.shapefile_browse_button.clicked.connect(self.set_shape)
         self.check_projection_button.clicked.connect(self.check_srid)

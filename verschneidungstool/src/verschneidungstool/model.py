@@ -178,14 +178,14 @@ class DBConnection(object):
     def get_projections_available(self):
         sql = f"""
         SELECT *
-        FROM {self.vt_schema}.projections_available
+        FROM {self.vt_schema}.projcs2srid
         ORDER BY srid
         """
         return self.fetch(sql)
 
     def add_projection(self, srid, description):
         sql = f"""
-        INSERT INTO {self.vt_schema}.projections_available (srid, description)
+        INSERT INTO {self.vt_schema}.projcs2srid (srid, name)
         VALUES ('{srid}','{description}');
         """
         return self.execute(sql)
