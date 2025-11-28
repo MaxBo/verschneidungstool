@@ -40,7 +40,7 @@ class Login(object):
 
     def get_connection(self) -> Engine:
         engine = create_engine(f'postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}',
-                               connect_args={'sslmode':'require'})
+                               connect_args={'sslmode':'prefer'})
         return engine
 
 

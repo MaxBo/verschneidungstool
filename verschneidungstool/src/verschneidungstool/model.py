@@ -599,7 +599,7 @@ class DBConnection(object):
         sql = '''
         SELECT 1 FROM verschneidungstool.scenarios_available sa,
         verschneidungstool.current_scenario s
-        WHERE s.scenario = sa.scenario AND sa.current;
+        WHERE s.scenario_no = sa.scenario_no AND sa.current;
         '''
         rows = self.fetch(sql)
         if rows:
@@ -617,7 +617,7 @@ class DBConnection(object):
         # set the current scenario current
         sql = '''
         UPDATE verschneidungstool.scenarios_available sa
-        SET current = (s.scenario = sa.scenario)
+        SET current = (s.scenario_no = sa.scenario_no)
         FROM verschneidungstool.current_scenario s
         ;
         '''
