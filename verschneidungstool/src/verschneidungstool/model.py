@@ -322,7 +322,7 @@ class DBConnection(object):
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
         shp2pgsql_cmd = (f'"{shp2pgsql_path}" {options} "{shapefile}" '
-                         f'"{schema}"."{table}"'
+                         f'"{schema}"."{name}"'
                          )
 
         def finished(exit_code, exit_status):
@@ -409,10 +409,10 @@ class DBConnection(object):
                 # add new area to areas_available
                 sql = f"""
                 INSERT INTO {self.vt_schema}.areas_available (area_name, schema, table_name, can_be_deleted)
-                VALUES ('{name}','{schema}', '{table}', 'TRUE');
+                VALUES ('{name}','{schema}', '{name}', 'TRUE');
                 """
                 sql_alter = f"""
-                ALTER TABLE "{schema}"."{table}"
+                ALTER TABLE "{schema}"."{name}"
                 OWNER TO group_osm;
                 """
                 self.execute(sql)
