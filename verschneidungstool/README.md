@@ -1,4 +1,4 @@
-Verkehrsmodell
-==============
+Verschneidungstool
+==================
 
-Verkehrsmodell mit VISUM-AddIns
+Verschneidungstool für Strukturdaten
