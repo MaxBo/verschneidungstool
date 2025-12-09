@@ -1,3 +1,3 @@
-call mamba activate verschneidungstool_reghan314
+call mamba activate verschneidungstool_reghan313
 call verschneidungstool
 exit
