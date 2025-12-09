@@ -7,6 +7,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from collections import OrderedDict
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from urllib import parse
 
 from types import MethodType
 import os
@@ -40,8 +41,9 @@ class Login(object):
                           pw=self.password, db=self.db)
 
     def get_connection(self) -> Engine:
-        engine = create_engine(f'postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}',
-                               connect_args={'sslmode':'require'})
+        pw_encoded = parse.quote_plus(self.password)
+        engine = create_engine(f'postgresql://{self.user}:{pw_encoded}@{self.host}:{self.port}/{self.db}',
+                               connect_args={'sslmode':'prefer'})
         return engine
 
 
