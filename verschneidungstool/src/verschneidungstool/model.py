@@ -670,7 +670,7 @@ class DBConnection(object):
                                   columns: List[str],
                                   filename: str,
                                   category: str,
-                                  visum_classname: str = 'Bezirke',
+                                  visum_classname: str = 'Zone',
                                   append: bool = False,
                                   long_format: bool = False,
                                   ) -> set:
@@ -709,7 +709,7 @@ class DBConnection(object):
                          table: str,
                          columns: List[str],
                          filename: str,
-                         visum_classname: str = 'Bezirke',
+                         visum_classname: str = 'Zone',
                          append: bool = False):
         tmp_dir = tempfile.mkdtemp()
         tmp_filename = os.path.join(tmp_dir, 'temp.csv')

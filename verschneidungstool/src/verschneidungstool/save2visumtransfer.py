@@ -1,19 +1,19 @@
 import pandas as pd
 from visumtransfer.visum_table import VisumTransfer, VisumTable
-from visumtransfer.visum_tables import (BenutzerdefinierteGruppe,
-                                        BenutzerdefiniertesAttribut,
-                                        Bezirke,
-                                        Oberbezirk,
-                                        Gebiete,
-                                        Strukturgroessenwert,
-                                        PersonengruppeJeBezirk,
+from visumtransfer.visum_tables import (UserDefinedGroup,
+                                        UserDefinedAttribute,
+                                        Zone,
+                                        Mainzone,
+                                        Territory,
+                                        StructuralPropValues,
+                                        PersonGroupPerZone,
                                         )
 
 
 def save_to_visum_transfer(df: pd.DataFrame,
                            filepath: str,
                            category: str,
-                           visum_classname: str = 'Bezirke',
+                           visum_classname: str = 'Zone',
                            append: bool = False,
                            long_format: bool=False):
     """
@@ -23,8 +23,8 @@ def save_to_visum_transfer(df: pd.DataFrame,
     transfer-file with a VERSION-section
 
     if long_format is specified, assume, that the data from the Dataframe is
-    already in long-format. If not, convert wide to long for PersonengruppeJeBezirk
-    and Strukturgroessenwert
+    already in long-format. If not, convert wide to long for PersonGroupPerZone
+    and StructuralPropValues
     """
     Level: VisumTable = globals().get(visum_classname)
     if not Level:
@@ -37,7 +37,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
         if not long_format:
             df2 = pd.wide_to_long(df.reset_index(),
                                   '#', 'vz_id', 'STRUKTURGROESSENCODE',
-                                  suffix='[\w\W]+').reset_index()
+                                  suffix=r'[\w\W]+').reset_index()
         else:
             df2 = df.reset_index()
         visum_table = Level(mode='')
@@ -48,7 +48,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
         transfer.add_table(visum_table)
 
     else:
-        userdefined = BenutzerdefiniertesAttribut(mode='')
+        userdefined = UserDefinedAttribute(mode='')
         zones = Level(mode='*')
         dtype2datatype = {'f': 'Double',
                           'i': 'Int',
@@ -57,11 +57,11 @@ def save_to_visum_transfer(df: pd.DataFrame,
 
         for colname in df.columns:
             col = df[colname]
-            datatype = dtype2datatype.get(col.dtype.kind, 'Double')
-            userdefined.add_daten_attribute(Level.code,
+            valuetype = dtype2datatype.get(col.dtype.kind, 'Double')
+            userdefined.add_data_attribute(Level.code,
                                             colname,
-                                            datentyp=datatype,
-                                            benutzerdefiniertergruppenname=category)
+                                            valuetype=valuetype,
+                                            userdefinedgroupname=category)
 
         df.index.name = zones.pkey[0]
         zones.df = df
@@ -77,7 +77,7 @@ def save_to_visum_transfer(df: pd.DataFrame,
 def prepend_categories(filepath: str, categories: set):
     """Prepend userdefined groups to transfer file"""
     transfer = VisumTransfer.new_transfer()
-    userdefgroups = BenutzerdefinierteGruppe(mode='')
+    userdefgroups = UserDefinedGroup(mode='')
     transfer.add_table(userdefgroups)
 
     for category in categories:
