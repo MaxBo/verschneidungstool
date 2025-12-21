@@ -56,6 +56,8 @@ def save_to_visum_transfer(df: pd.DataFrame,
                           'b': 'Bool', }
 
         for colname in df.columns:
+            if zones.column_exists(colname):
+                continue
             col = df[colname]
             valuetype = dtype2datatype.get(col.dtype.kind, 'Double')
             userdefined.add_data_attribute(Level.code,
