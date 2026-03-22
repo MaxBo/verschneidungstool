@@ -1,12 +1,8 @@
 import pandas as pd
 from visumtransfer.visum_table import VisumTransfer, VisumTable
+import visumtransfer.visum_tables
 from visumtransfer.visum_tables import (UserDefinedGroup,
                                         UserDefinedAttribute,
-                                        Zone,
-                                        Mainzone,
-                                        Territory,
-                                        StructuralPropValues,
-                                        PersonGroupPerZone,
                                         )
 
 
@@ -26,9 +22,9 @@ def save_to_visum_transfer(df: pd.DataFrame,
     already in long-format. If not, convert wide to long for PersonGroupPerZone
     and StructuralPropValues
     """
-    Level: VisumTable = globals().get(visum_classname)
+    Level: VisumTable = getattr(visumtransfer.visum_tables, visum_classname, None)
     if not Level:
-        raise ValueError(f'{visum_classname} not defined or imported')
+        raise ValueError(f'{visum_classname} not defined in {visumtransfer.visum_tables.__file__}')
     assert issubclass(Level, VisumTable), f'{visum_classname} is not a subclass of VisumTable'
 
     transfer = VisumTransfer.new_transfer()
