@@ -495,8 +495,8 @@ class DBConnection(object):
                 t."{zone_id}"::integer AS vz_id,
                 st_multi(st_transform(t.geom, {srid}))::geometry(MULTIPOLYGON, {srid}) AS geom,
                 {name_str}::text AS zone_name,
-                CASE WHEN t.xkoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, {srid})
-                ELSE st_setsrid(st_makepoint(t.xkoord, t.ykoord), {srid})::geometry(Point, {srid})
+                CASE WHEN t.xcoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, {srid})
+                ELSE st_setsrid(st_makepoint(t.xcoord, t.ycoord), {srid})::geometry(Point, {srid})
                 END AS pnt
 
                 FROM "{schema}"."{table}" AS t;
