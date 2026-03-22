@@ -321,6 +321,7 @@ class DBConnection(object):
         #put tmp file in folder where this script is located
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir, 'temp.sql')
+        table = name
         shp2pgsql_cmd = (f'"{shp2pgsql_path}" {options} "{shapefile}" '
                          f'"{schema}"."{table}"'
                          )
@@ -403,6 +404,7 @@ class DBConnection(object):
         '''
 
         self.on_progress = on_progress
+        table = name
 
         def on_exit(exit_code, exit_status):
             if exit_code == 0:
