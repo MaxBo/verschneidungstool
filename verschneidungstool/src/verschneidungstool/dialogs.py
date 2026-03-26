@@ -557,8 +557,6 @@ class UploadAreaDialog(UploadShapeDialog):
         # try to set zone with selected values, repeat if errors occure
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
-        #idx = self.hst_combo.currentIndex()
-        #hst_id = self.hst_combo.itemData(idx)[0]
 
         success, msg = self.db_connection.set_zone(
             self.schema, self.name,
@@ -571,10 +569,6 @@ class UploadAreaDialog(UploadShapeDialog):
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             msgBox.exec_()
-
-    #def set_default_stops(self):
-        #idx = self.hst_combo.currentIndex()
-        #def_stop_id = self.hst_combo.itemData(idx)[0]
 
     def select_identifiers(self):
         '''
