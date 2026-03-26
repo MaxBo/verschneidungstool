@@ -22,12 +22,14 @@ class DBConnection(object):
         self.colums_available = None
         self.vt_schema = 'verschneidungstool'
 
-    def fetch(self, sql):
+    def fetch(self, sql, commit=False):
         with Connection(login=self.login) as conn:
             self.conn = conn
             cursor = self.conn.cursor()
             cursor.execute(sql)
             rows = cursor.fetchall()
+            if commit:
+                conn.commit()
         return rows
 
     def copy_expert(self, sql, fileobject):
@@ -485,11 +487,14 @@ class DBConnection(object):
                     name_str = "''"
                 else:
                     name_str = f't."{zone_name}"'
-                sql_prep = f"""
+                sql_insert = f"""
                 INSERT INTO {vt_schema}.scenario (area_id, start_time, end_time, started, finished)
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM {vt_schema}.areas_available AS a
-                WHERE a.schema = '{schema}' AND a.table_name = '{table}';
+                WHERE a.schema = '{schema}' AND a.table_name = '{table}'
+                RETURNING id;
+                """
+                sql_create_view = f"""
                 CREATE OR REPLACE VIEW vz.view_vz_aktuell (vz_id, geom, zone_name, pnt) AS
                 SELECT
                 t."{zone_id}"::integer AS vz_id,
@@ -502,7 +507,8 @@ class DBConnection(object):
                 FROM "{schema}"."{table}" AS t;
                 """
                 try:
-                    execute(sql_prep)
+                    s_id = fetch(sql_insert, commit=True)[0][0]
+                    execute(sql_create_view)
                 except psycopg2.ProgrammingError as e:
                     self.error.emit(str(e))
                     return
@@ -527,9 +533,7 @@ class DBConnection(object):
 
                 sql_post = f"""
                 UPDATE {vt_schema}.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
-                FROM {vt_schema}.areas_available AS a, {vt_schema}.last_area_calculated AS l
-                WHERE a.schema='{schema}' AND a.table_name='{table}'
-                AND l.id = sc.id;
+                WHERE sc.id = {s_id};
                 """
                 execute(sql_post)
 
