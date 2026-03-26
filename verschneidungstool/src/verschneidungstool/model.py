@@ -273,6 +273,15 @@ class DBConnection(object):
         """
         # update the meta table
         self.execute(sql_update)
+
+        srid = config.settings['db_config']['srid']
+        sql_add_point = f"""
+        ALTER TABLE "{schema}"."{table}"
+        ADD COLUMN pnt geometry(POINT, {srid});
+        UPDATE "{schema}"."{table}" SET pnt = st_setsrid(st_makepoint(xcoord, ycoord), {srid});
+        """
+        self.execute(sql_add_point)
+
         return True, ''
 
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
@@ -434,13 +443,6 @@ class DBConnection(object):
         self.upload_shape(schema, name, shapefile, process, conversion_process,
                           on_progress=on_progress, srid=srid, on_exit=on_exit,
                           encoding=encoding)
-
-        sql_add_point = f"""
-        ALTER TABLE "{schema}"."{name}"
-        ADD COLUMN pnt geometry(POINT, {srid});
-        UPDATE "{schema}"."{name}" SET pnt = st_setsrid(st_makepoint(xcoord, ycoord), {srid});
-        """
-        self.execute(sql_add_point)
 
     def new_intersection(self, schema, table, srid=25832):
         # set functions to scope of following class
