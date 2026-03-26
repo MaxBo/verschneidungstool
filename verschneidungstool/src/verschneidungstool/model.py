@@ -435,6 +435,13 @@ class DBConnection(object):
                           on_progress=on_progress, srid=srid, on_exit=on_exit,
                           encoding=encoding)
 
+        sql_add_point = f"""
+        ALTER TABLE "{schema}"."{name}"
+        ADD COLUMN pnt geometry(POINT, {srid});
+        UPDATE "{schema}"."{name}" SET pnt = st_setsrid(st_makepoint(xcoord, ycoord), {srid});
+        """
+        self.execute(sql_add_point)
+
     def new_intersection(self, schema, table, srid=25832):
         # set functions to scope of following class
         fetch = self.fetch
