@@ -154,7 +154,7 @@ def validate_dbstring(string):
     or underscore)
     return true if valid, else false
     '''
-    pattern = '^[a-z_][a-z0-9_]*$'
+    pattern = '^[A-Za-zÄÖÜäöüß_][A-Za-z0-9ÄÖÜäöüß_]*$'
     a = re.match(pattern, string)
     if (a):
         return True
@@ -423,8 +423,8 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
                 'Warnung!',
                 'Der angegebene Name entspricht nicht\n'
                 'dem für Tabellennamen geforderten Muster\n'
-                '"^[a-z_][a-z0-9_]*$"\n'
-                '(nur Kleinbuchstaben, Ziffern und Unterstrich erlaubt)')
+                '"^[A-Za-zÄÖÜäöüß_][A-Za-z0-9ÄÖÜäöüß_]*$"\n'
+                '(nur Buchstaben, Ziffern und Unterstrich erlaubt)')
             msgBox.exec_()
             return False
 
