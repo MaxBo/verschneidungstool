@@ -193,10 +193,13 @@ class DBConnection(object):
         return self.execute(sql)
 
     def get_srid(self, projection_data):
+        data = projection_data.split(',DATUM')[0]
         sql = f"""
-        SELECT prjtxt2epsg('{projection_data}')
+        SELECT srid
+        FROM spatial_ref_sys s
+        WHERE s.srtext ILIKE %(pattern)s
         """
-        return self.fetch(sql)
+        return self.fetch(sql, pattern=f'{data}%')
 
     def get_spatial_ref(self, srid):
         sql = f"""
@@ -515,9 +518,11 @@ class DBConnection(object):
 
                 FROM "{schema}"."{table}" AS t;
                 """
+                progress = 0
                 try:
                     s_id = fetch(sql_insert, commit=True)[0][0]
                     execute(sql_create_view)
+                    self.progress.emit(f'Szenario {s_id} eingefügt und vz_aktuell aktualisiert...', progress)
                 except psycopg2.ProgrammingError as e:
                     self.error.emit(str(e))
                     return
@@ -525,7 +530,6 @@ class DBConnection(object):
                 self.add_pnt_column_if_exists(zone_id, name_str)
 
                 weight_sum = sum(q.weight for q in queries)
-                progress = 0
 
                 for query in queries:
                     self.progress.emit(query.message, progress)
