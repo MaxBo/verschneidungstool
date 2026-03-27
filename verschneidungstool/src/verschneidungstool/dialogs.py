@@ -486,10 +486,11 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
     def check_srid(self):
         srid = None
         try:
-            srid = self.db_connection.get_srid(self.proj_data)[0].prjtxt2epsg
-            message = 'Projektion entspricht der srid <b>{}</b> '.format(srid)
-        except:
-            message = '<b>Es konnte keine passende srid bestimmt werden!<b> <br>'
+            srid = self.db_connection.get_srid(self.proj_data)[0].srid
+            message = f'Projektion entspricht der srid <b>{srid}</b> '
+        except Exception as e:
+            data = self.proj_data.split(',DATUM')[0]
+            message = f'{e}<b>Es konnte keine passende srid für {data} bestimmt werden!<b> <br>'
 
         self.check_projection_button.setEnabled(False)
 
@@ -497,16 +498,18 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             idx = -1
             # find srid in the available projections
             for i in range(self.projection_combo.count()):
-                s, c = self.projection_combo.itemData(i)[0]
+                #a = self.projection_combo.itemData(i)
+                #message += f'{a}'
+                s, descr, not_in_database = self.projection_combo.itemData(i)
                 if s == srid:
                     idx = i
                     break
 
             # select if found
             if idx >= 0:
-                description = \
-                    self.projection_combo.itemData(idx)[1]
-                message += '<b>- {}</b><br>'.format(description)
+                #description = \
+                    #self.projection_combo.itemData(idx)[1]
+                message += '<b>- {}</b><br>'.format(descr)
                 self.projection_combo.setCurrentIndex(idx)
 
             # projection is not available yet -> check db if it is supported
@@ -514,18 +517,18 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             else:
                 entries = self.db_connection.get_spatial_ref(srid)
                 if len(entries) == 0:
-                    message += ('<br> <b> <i> srid {} wird nicht '
-                                'unterstützt!</i> </b><br>'.format(srid))
+                    message += (f'<br> <b> <i> srid {srid} wird nicht '
+                                'unterstützt!</i> </b><br>')
                 else:
                     projcs, geogcs = parse_projection_data(entries[0].srtext)
                     description = projcs if projcs else geogcs
-                    message += '<b>- {}</b><br>'.format(description)
+                    message += f'<b>- {description}</b><br>'
                     message += ('<i> Projektion ist noch nicht in der Datenbank'
                                 'vorhanden, wird beim Hochladen hinzugefügt'
-                                '</i>'.format(description))
+                                '</i>')
                     # add new srid to combobox and select it
                     self.projection_combo.addItem(
-                        "{0} - {1}".format(srid, description),
+                        f"{srid} - {description}",
                         [srid, description, True])  # flag: not in database yet
                     self.projection_combo.setCurrentIndex(
                         len(self.projection_combo) - 1)
@@ -557,8 +560,6 @@ class UploadAreaDialog(UploadShapeDialog):
         # try to set zone with selected values, repeat if errors occure
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
-        #idx = self.hst_combo.currentIndex()
-        #hst_id = self.hst_combo.itemData(idx)[0]
 
         success, msg = self.db_connection.set_zone(
             self.schema, self.name,
@@ -571,10 +572,6 @@ class UploadAreaDialog(UploadShapeDialog):
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             msgBox.exec_()
-
-    #def set_default_stops(self):
-        #idx = self.hst_combo.currentIndex()
-        #def_stop_id = self.hst_combo.itemData(idx)[0]
 
     def select_identifiers(self):
         '''

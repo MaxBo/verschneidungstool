@@ -22,12 +22,14 @@ class DBConnection(object):
         self.colums_available = None
         self.vt_schema = 'verschneidungstool'
 
-    def fetch(self, sql):
+    def fetch(self, sql, commit=False):
         with Connection(login=self.login) as conn:
             self.conn = conn
             cursor = self.conn.cursor()
             cursor.execute(sql)
             rows = cursor.fetchall()
+            if commit:
+                conn.commit()
         return rows
 
     def copy_expert(self, sql, fileobject):
@@ -191,10 +193,13 @@ class DBConnection(object):
         return self.execute(sql)
 
     def get_srid(self, projection_data):
+        data = projection_data.split(',DATUM')[0]
         sql = f"""
-        SELECT prjtxt2epsg('{projection_data}')
+        SELECT srid
+        FROM spatial_ref_sys s
+        WHERE s.srtext ILIKE %(pattern)s
         """
-        return self.fetch(sql)
+        return self.fetch(sql, pattern=f'{data}%')
 
     def get_spatial_ref(self, srid):
         sql = f"""
@@ -271,6 +276,15 @@ class DBConnection(object):
         """
         # update the meta table
         self.execute(sql_update)
+
+        srid = config.settings['db_config']['srid']
+        sql_add_point = f"""
+        ALTER TABLE "{schema}"."{table}"
+        ADD COLUMN pnt geometry(POINT, {srid});
+        UPDATE "{schema}"."{table}" SET pnt = st_setsrid(st_makepoint(xcoord, ycoord), {srid});
+        """
+        self.execute(sql_add_point)
+
         return True, ''
 
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
@@ -485,11 +499,14 @@ class DBConnection(object):
                     name_str = "''"
                 else:
                     name_str = f't."{zone_name}"'
-                sql_prep = f"""
+                sql_insert = f"""
                 INSERT INTO {vt_schema}.scenario (area_id, start_time, end_time, started, finished)
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM {vt_schema}.areas_available AS a
-                WHERE a.schema = '{schema}' AND a.table_name = '{table}';
+                WHERE a.schema = '{schema}' AND a.table_name = '{table}'
+                RETURNING id;
+                """
+                sql_create_view = f"""
                 CREATE OR REPLACE VIEW vz.view_vz_aktuell (vz_id, geom, zone_name, pnt) AS
                 SELECT
                 t."{zone_id}"::integer AS vz_id,
@@ -501,8 +518,11 @@ class DBConnection(object):
 
                 FROM "{schema}"."{table}" AS t;
                 """
+                progress = 0
                 try:
-                    execute(sql_prep)
+                    s_id = fetch(sql_insert, commit=True)[0][0]
+                    execute(sql_create_view)
+                    self.progress.emit(f'Szenario {s_id} eingefügt und vz_aktuell aktualisiert...', progress)
                 except psycopg2.ProgrammingError as e:
                     self.error.emit(str(e))
                     return
@@ -510,7 +530,6 @@ class DBConnection(object):
                 self.add_pnt_column_if_exists(zone_id, name_str)
 
                 weight_sum = sum(q.weight for q in queries)
-                progress = 0
 
                 for query in queries:
                     self.progress.emit(query.message, progress)
@@ -527,9 +546,7 @@ class DBConnection(object):
 
                 sql_post = f"""
                 UPDATE {vt_schema}.scenario AS sc SET end_time=clock_timestamp(), started=False, finished=True
-                FROM {vt_schema}.areas_available AS a, {vt_schema}.last_area_calculated AS l
-                WHERE a.schema='{schema}' AND a.table_name='{table}'
-                AND l.id = sc.id;
+                WHERE sc.id = {s_id};
                 """
                 execute(sql_post)
 
