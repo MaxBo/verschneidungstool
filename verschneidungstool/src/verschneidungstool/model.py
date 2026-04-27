@@ -454,7 +454,7 @@ class DBConnection(object):
         vt_schema = self.vt_schema
 
         class Intersection(QtCore.QThread):
-            progress = QtCore.pyqtSignal(str, int)
+            progress = QtCore.pyqtSignal(str, float)
             error = QtCore.pyqtSignal(str)
             def __init__(self):
                 QtCore.QThread.__init__(self)
@@ -518,7 +518,7 @@ class DBConnection(object):
 
                 FROM "{schema}"."{table}" AS t;
                 """
-                progress = 0
+                progress = 0.0
                 try:
                     s_id = fetch(sql_insert, commit=True)[0][0]
                     execute(sql_create_view)
@@ -529,7 +529,7 @@ class DBConnection(object):
 
                 self.add_pnt_column_if_exists(zone_id, name_str)
 
-                weight_sum = sum(q.weight for q in queries)
+                weight_sum = sum(q.weight for q in queries) or 1
 
                 for query in queries:
                     self.progress.emit(query.message, progress)
@@ -540,6 +540,8 @@ class DBConnection(object):
                             query.command, str(e))))
                         return
                     progress += (query.weight / weight_sum) * 100
+                    progress = min(progress, 99.0)
+                    self.progress.emit(f'{query.message} abgeschlossen', progress)
 
 
                 self.progress.emit('Nachbereitungen laufen...', progress)

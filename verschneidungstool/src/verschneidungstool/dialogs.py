@@ -689,7 +689,7 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         if progress is not None:
             if isinstance(progress, QtCore.QVariant):
                 progress = progress[0]
-            self.progress_bar.setValue(progress)
+            self.progress_bar.setValue(int(progress))
 
     def show_error(self, text):
         cursor = self.log_edit.textCursor()
