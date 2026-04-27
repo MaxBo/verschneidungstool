@@ -9,6 +9,7 @@ from verschneidungstool.config import (Config, DEFAULT_SRID,
 from verschneidungstool.model import (parse_projection_file,
                                       parse_projection_data)
 import copy, os, re, sys
+import html
 
 config = Config()
 
@@ -666,18 +667,37 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         if self.auto_close:
             self.close()
 
-    def show_status(self, text, progress=None):
+    def _to_plain_log_text(self, text):
+        if text is None:
+            return ''
+        cleaned = str(text).replace('\r\n', '\n').replace('\r', '\n')
+        cleaned = re.sub(r'(?i)<br\s*/?>', '\n', cleaned)
+        cleaned = re.sub(r'(?i)</p\s*>', '\n', cleaned)
+        cleaned = re.sub(r'<[^>]+>', '', cleaned)
+        return html.unescape(cleaned).rstrip('\n')
+
+    def show_status(self, text, progress=None, bold=False):
         #if hasattr(text, 'toLocal8Bit'):
             #text = text.toLocal8Bit()
-        self.log_edit.insertHtml(str(text) + '<br>')
-        self.log_edit.moveCursor(QtGui.QTextCursor.End)
-        if progress:
+        cursor = self.log_edit.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        fmt = QtGui.QTextCharFormat()
+        if bold:
+            fmt.setFontWeight(QtGui.QFont.Bold)
+        cursor.insertText(self._to_plain_log_text(text) + '\n', fmt)
+        self.log_edit.setTextCursor(cursor)
+        if progress is not None:
             if isinstance(progress, QtCore.QVariant):
                 progress = progress[0]
             self.progress_bar.setValue(progress)
 
     def show_error(self, text):
-        self.show_status( f'<span style="color:red;">Fehler: {text}</span>')
+        cursor = self.log_edit.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        fmt = QtGui.QTextCharFormat()
+        fmt.setForeground(QtGui.QBrush(QtGui.QColor('red')))
+        cursor.insertText(f'Fehler: {self._to_plain_log_text(text)}\n', fmt)
+        self.log_edit.setTextCursor(cursor)
         self.progress_bar.setStyleSheet(
             'QProgressBar::chunk { background-color: red; }')
 
@@ -763,8 +783,7 @@ class ExecDialog(ProgressDialog):
     def kill(self):
         self.progress_bar.setStyleSheet(ABORTED_STYLE)
         self.process.kill()
-        self.log_edit.insertHtml('<b> Vorgang abgebrochen </b> <br>')
-        self.log_edit.moveCursor(QtGui.QTextCursor.End)
+        self.show_status('Vorgang abgebrochen', bold=True)
 
 
 class ExecUploadShape(ExecDialog):
