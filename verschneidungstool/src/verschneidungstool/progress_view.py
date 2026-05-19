@@ -11,15 +11,24 @@ from qgis.PyQt import QtCore, QtGui, QtWidgets
 class Ui_ProgressDialog(object):
     def setupUi(self, ProgressDialog):
         ProgressDialog.setObjectName("ProgressDialog")
-        ProgressDialog.setWindowModality(QtCore.Qt.ApplicationModal)
+        application_modal = getattr(QtCore.Qt, "ApplicationModal", None)
+        if application_modal is None:
+            application_modal = QtCore.Qt.WindowModality.ApplicationModal
+        ProgressDialog.setWindowModality(application_modal)
         ProgressDialog.resize(635, 347)
         ProgressDialog.setMinimumSize(QtCore.QSize(410, 210))
         ProgressDialog.setMaximumSize(QtCore.QSize(10000, 10000))
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(ProgressDialog)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.log_edit = QtWidgets.QTextEdit(ProgressDialog)
-        self.log_edit.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.log_edit.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
+        scroll_always_on = getattr(QtCore.Qt, "ScrollBarAlwaysOn", None)
+        if scroll_always_on is None:
+            scroll_always_on = QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+        self.log_edit.setHorizontalScrollBarPolicy(scroll_always_on)
+        no_wrap = getattr(QtWidgets.QTextEdit, "NoWrap", None)
+        if no_wrap is None:
+            no_wrap = QtWidgets.QTextEdit.LineWrapMode.NoWrap
+        self.log_edit.setLineWrapMode(no_wrap)
         self.log_edit.setReadOnly(True)
         self.log_edit.setObjectName("log_edit")
         self.verticalLayout_2.addWidget(self.log_edit)

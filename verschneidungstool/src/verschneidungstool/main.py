@@ -105,7 +105,10 @@ def startmain():
 
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     app = QtWidgets.QApplication(sys.argv)
-    app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    aa_enable_high_dpi = getattr(QtCore.Qt, "AA_EnableHighDpiScaling", None)
+    if aa_enable_high_dpi is None:
+        aa_enable_high_dpi = QtCore.Qt.ApplicationAttribute.AA_EnableHighDpiScaling
+    app.setAttribute(aa_enable_high_dpi)
     mainwindow = MainWindow()
     mainwindow.show()
     mainwindow.exec_arguments(arguments)

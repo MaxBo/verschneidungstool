@@ -14,6 +14,35 @@ config = Config()
 UI_PATH = os.path.join(os.path.dirname(__file__), os.pardir, 'ui')
 
 
+def _qt_enum(name: str, enum_group: str):
+    legacy_value = getattr(QtCore.Qt, name, None)
+    if legacy_value is not None:
+        return legacy_value
+    scoped_enum = getattr(QtCore.Qt, enum_group, None)
+    if scoped_enum is None:
+        raise AttributeError(f"Qt enum group '{enum_group}' not found")
+    return getattr(scoped_enum, name)
+
+
+def _qmessagebox_enum(name: str, enum_group: str):
+    legacy_value = getattr(QtWidgets.QMessageBox, name, None)
+    if legacy_value is not None:
+        return legacy_value
+    scoped_enum = getattr(QtWidgets.QMessageBox, enum_group, None)
+    if scoped_enum is None:
+        raise AttributeError(f"QMessageBox enum group '{enum_group}' not found")
+    return getattr(scoped_enum, name)
+
+
+QT_UNCHECKED = _qt_enum("Unchecked", "CheckState")
+QT_ITEM_IS_USER_CHECKABLE = _qt_enum("ItemIsUserCheckable", "ItemFlag")
+QT_ITEM_IS_ENABLED = _qt_enum("ItemIsEnabled", "ItemFlag")
+QT_NON_MODAL = _qt_enum("NonModal", "WindowModality")
+QMB_WARNING = _qmessagebox_enum("Warning", "Icon")
+QMB_YES_ROLE = _qmessagebox_enum("YesRole", "ButtonRole")
+QMB_NO_ROLE = _qmessagebox_enum("NoRole", "ButtonRole")
+
+
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     project_changed = QtCore.pyqtSignal()
     ui_file = 'PyQt/main.ui'
@@ -186,7 +215,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return True
         except Exception as e:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 "Fehler bei der Verbindung zur Datenbank!\n\n" + str(e))
             msgBox.exec_()
             # disable all elements on exception
@@ -240,11 +269,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         success, msg= self.db_conn.drop_area(id, table_name, schema)
         if success:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Erfolg", msg)
+                QMB_WARNING, "Erfolg", msg)
             msgBox.exec_()
         else:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!", msg)
+                QMB_WARNING, "Warnung!", msg)
             msgBox.exec_()
 
         self.render_areas()
@@ -264,20 +293,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         groups = self.db_conn.get_structure_groups_available(year)
         for group, structure in groups.items():
             group_item = QtWidgets.QTreeWidgetItem(self.structure_tree, [group])
-            group_item.setCheckState(0, QtCore.Qt.Unchecked)
-            group_item.setFlags(QtCore.Qt.ItemIsUserCheckable
-                                | QtCore.Qt.ItemIsEnabled)
+            group_item.setCheckState(0, QT_UNCHECKED)
+            group_item.setFlags(QT_ITEM_IS_USER_CHECKABLE
+                                | QT_ITEM_IS_ENABLED)
             for cat, cols in structure.items():
                 cat_item = QtWidgets.QTreeWidgetItem(group_item, [cat])
-                cat_item.setCheckState(0, QtCore.Qt.Unchecked)
-                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable
-                                  | QtCore.Qt.ItemIsEnabled)
+                cat_item.setCheckState(0, QT_UNCHECKED)
+                cat_item.setFlags(QT_ITEM_IS_USER_CHECKABLE
+                                  | QT_ITEM_IS_ENABLED)
                 for col in cols:
                     col_item = QtWidgets.QTreeWidgetItem(cat_item, [col['name']])
                     col_item.setText(1, col['description'])
-                    col_item.setCheckState(0, QtCore.Qt.Unchecked)
-                    col_item.setFlags(QtCore.Qt.ItemIsUserCheckable
-                                      | QtCore.Qt.ItemIsEnabled)
+                    col_item.setCheckState(0, QT_UNCHECKED)
+                    col_item.setFlags(QT_ITEM_IS_USER_CHECKABLE
+                                      | QT_ITEM_IS_ENABLED)
         self.structure_tree.resizeColumnToContents(0)
 
     def edit_settings(self):
@@ -290,7 +319,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if len(last_calc) > 0 and not last_calc[0].finished:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Derzeit scheint bereits eine Berechnung stattzufinden!\n'
                 'Bitte warten Sie, bis diese abgeschlossen ist.\n\n'
                 'Wenn Sie sich sicher sind, dass alle Berechnungen bereits '
@@ -298,9 +327,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 'erzwingen.')
 
             msgBox.addButton(QtWidgets.QPushButton('Berechnung erzwingen'),
-                             QtWidgets.QMessageBox.YesRole)
+                             QMB_YES_ROLE)
             msgBox.addButton(QtWidgets.QPushButton('Abbrechen'),
-                             QtWidgets.QMessageBox.NoRole)
+                             QMB_NO_ROLE)
             reply = msgBox.exec_()
 
             # 2nd button clicked (==No)
@@ -357,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if check_last_calculation and not last_calc[0].finished:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Derzeit scheint bereits eine Berechnung stattzufinden!\n'
                 'Bitte warten Sie, bis diese abgeschlossen ist.\n\n'
                 'Wenn Sie sich sicher sind, dass alle Berechnungen bereits '
@@ -365,9 +394,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 'herunterladen.')
 
             msgBox.addButton(QtWidgets.QPushButton('Herunterladen erzwingen'),
-                             QtWidgets.QMessageBox.YesRole)
+                             QMB_YES_ROLE)
             msgBox.addButton(QtWidgets.QPushButton('Abbrechen'),
-                             QtWidgets.QMessageBox.NoRole)
+                             QMB_NO_ROLE)
             reply = msgBox.exec_()
             # 2nd button clicked (==No)
             if reply == 1:
@@ -376,7 +405,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not auto_args:
             if len(selected_columns) == 0:
                 msg_box = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Warning, "Warnung!",
+                    QMB_WARNING, "Warnung!",
                     'Sie haben keine Kategorie ausgewählt!\n'
                     'Bitte wählen sie eine oder mehrere aus,\n'
                     'um zugehörige Daten zu erhalten.')
@@ -394,7 +423,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if len(last_calc) == 0:
             msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Es liegen keine verschnittenen Daten vor.\n\n'
                 'Sie müssen neu verschneiden!')
             msg_box.exec_()
@@ -405,7 +434,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             last_calc[0].area_name != selected_area or
             last_calc[0].schema != schema):
             msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Es liegen keine verschnittenen Daten für die '
                 'gewählte Aggregationsstufe\n'
                 '"{area}" ({schema}.{table}) vor.\n\n'.format(
@@ -475,7 +504,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 tra = True
             else:
                 msg_box = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Warning, "Warnung!",
+                    QMB_WARNING, "Warnung!",
                     "Angegebene Dateiendung wird nicht unterstützt!")
                 msg_box.exec_()
                 return
@@ -485,7 +514,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msg_box = QtWidgets.QMessageBox(parent=self)
             msg_box.setWindowTitle("Lade herunter, bitte warten ...")
             msg_box.setText("Daten werden heruntergeladen, Bitte warten ...")
-            msg_box.setWindowModality(QtCore.Qt.NonModal)
+            msg_box.setWindowModality(QT_NON_MODAL)
             msg_box.show()
 
         resulttables_available = {r.schema_table: r

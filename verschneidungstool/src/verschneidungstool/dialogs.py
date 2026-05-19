@@ -52,6 +52,16 @@ def _qprocess_enum_any(names: tuple[str, ...], enum_group: str):
     )
 
 
+def _qmessagebox_enum(name: str, enum_group: str):
+    legacy_value = getattr(QtWidgets.QMessageBox, name, None)
+    if legacy_value is not None:
+        return legacy_value
+    scoped_enum = getattr(QtWidgets.QMessageBox, enum_group, None)
+    if scoped_enum is None:
+        raise AttributeError(f"QMessageBox enum group '{enum_group}' not found")
+    return getattr(scoped_enum, name)
+
+
 def qt_exec(dialog_or_app):
     exec_fn = getattr(dialog_or_app, "exec", None)
     if callable(exec_fn):
@@ -69,6 +79,7 @@ QT_ITEM_IS_USER_CHECKABLE = _qt_enum("ItemIsUserCheckable", "ItemFlag")
 QT_ITEM_IS_ENABLED = _qt_enum("ItemIsEnabled", "ItemFlag")
 QT_PROCESS_NORMAL_EXIT = _qprocess_enum_any(("NormalExit",), "ExitStatus")
 QT_PROCESS_CRASH_EXIT = _qprocess_enum_any(("Crashed", "CrashExit"), "ExitStatus")
+QMB_WARNING = _qmessagebox_enum("Warning", "Icon")
 
 XML_FILTER = 'XML-Dateien (*.xml)'
 ALL_FILES_FILTER = 'Alle Dateien (*.*)'
@@ -471,13 +482,13 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
         self.name = self.name_edit.text()
         if not os.path.exists(shapefile):
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 "Die angegebene Datei existiert nicht!")
             qt_exec(msgBox)
             return False
         if not validate_dbstring(self.name):
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
+                QMB_WARNING,
                 'Warnung!',
                 'Der angegebene Name entspricht nicht\n'
                 'dem für Tabellennamen geforderten Muster\n'
@@ -490,7 +501,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             for r in self.reserved_names:
                 if self.name == r:
                     msgBox = QtWidgets.QMessageBox(
-                        QtWidgets.QMessageBox.Warning, "Warnung!",
+                        QMB_WARNING, "Warnung!",
                         "Der Name '{}' ist bereits vergeben!".format(self.name))
                     qt_exec(msgBox)
                     return False
@@ -520,7 +531,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
         shapefile = self.shapefile_edit.text()
         if len(shapefile) == 0:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 "Sie müssen zunächst ein shapefile auswählen!")
             qt_exec(msgBox)
             return
@@ -627,7 +638,7 @@ class UploadAreaDialog(UploadShapeDialog):
             self.accept()
         else:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
             qt_exec(msgBox)
 
@@ -978,7 +989,7 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
         directory = self.dir_edit.text()
         if not directory:
             msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Sie müssen ein Zielverzeichnis wählen!')
             qt_exec(msgBox)
             return
@@ -988,7 +999,7 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
 
         if len(selected_tables) == 0:
             msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning, "Warnung!",
+                QMB_WARNING, "Warnung!",
                 'Sie müssen mindestens eine Tabelle auswählen')
             qt_exec(msg_box)
             return

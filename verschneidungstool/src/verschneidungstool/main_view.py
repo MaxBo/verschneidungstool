@@ -140,7 +140,10 @@ class Ui_MainWindow(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox_2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.scenario_combo = QtWidgets.QComboBox(self.groupBox_2)
-        self.scenario_combo.setLayoutDirection(QtCore.Qt.LeftToRight)
+        left_to_right = getattr(QtCore.Qt, "LeftToRight", None)
+        if left_to_right is None:
+            left_to_right = QtCore.Qt.LayoutDirection.LeftToRight
+        self.scenario_combo.setLayoutDirection(left_to_right)
         self.scenario_combo.setObjectName("scenario_combo")
         self.verticalLayout.addWidget(self.scenario_combo)
         self.verticalLayout_7.addWidget(self.groupBox_2)
