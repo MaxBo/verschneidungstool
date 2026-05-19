@@ -1,4 +1,10 @@
-from .qt_compat import install_legacy_qt_aliases
 from ._version import __version__
 
-install_legacy_qt_aliases()
+# Keep package importable in build isolation (where `qgis` is unavailable).
+# The Qt compatibility aliases are only needed at runtime inside QGIS.
+try:
+    from .qt_compat import install_legacy_qt_aliases
+except ModuleNotFoundError:
+    install_legacy_qt_aliases = None
+else:
+    install_legacy_qt_aliases()
