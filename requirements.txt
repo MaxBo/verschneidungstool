@@ -6,6 +6,5 @@ pytest
 psycopg2
 lxml
 xlwt
-pyqt5
 tables
 sqlalchemy>=2

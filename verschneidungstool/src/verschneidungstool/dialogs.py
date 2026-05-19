@@ -3,7 +3,7 @@ from verschneidungstool.settings_view import Ui_Settings
 from verschneidungstool.upload_view import Ui_Upload
 from verschneidungstool.progress_view import Ui_ProgressDialog
 from verschneidungstool.download_data_view import Ui_DownloadDataDialog
-from PyQt5 import QtCore, QtWidgets, QtGui
+from qgis.PyQt import QtCore, QtWidgets, QtGui
 from verschneidungstool.config import (Config, DEFAULT_SRID,
                                        ENCODINGS, DEFAULT_ENCODING)
 from verschneidungstool.model import (parse_projection_file,
@@ -12,6 +12,63 @@ import copy, os, re, sys
 import html
 
 config = Config()
+
+
+def _qt_enum(name: str, enum_group: str):
+    legacy_value = getattr(QtCore.Qt, name, None)
+    if legacy_value is not None:
+        return legacy_value
+    scoped_enum = getattr(QtCore.Qt, enum_group, None)
+    if scoped_enum is None:
+        raise AttributeError(f"Qt enum group '{enum_group}' not found")
+    return getattr(scoped_enum, name)
+
+
+def _qt_enum_any(names: tuple[str, ...], enum_group: str):
+    for name in names:
+        value = getattr(QtCore.Qt, name, None)
+        if value is not None:
+            return value
+        scoped_enum = getattr(QtCore.Qt, enum_group, None)
+        if scoped_enum is not None:
+            scoped_value = getattr(scoped_enum, name, None)
+            if scoped_value is not None:
+                return scoped_value
+    raise AttributeError(f"None of {names} found in Qt enum group '{enum_group}'")
+
+
+def _qprocess_enum_any(names: tuple[str, ...], enum_group: str):
+    for name in names:
+        value = getattr(QtCore.QProcess, name, None)
+        if value is not None:
+            return value
+        scoped_enum = getattr(QtCore.QProcess, enum_group, None)
+        if scoped_enum is not None:
+            scoped_value = getattr(scoped_enum, name, None)
+            if scoped_value is not None:
+                return scoped_value
+    raise AttributeError(
+        f"None of {names} found in QProcess enum group '{enum_group}'"
+    )
+
+
+def qt_exec(dialog_or_app):
+    exec_fn = getattr(dialog_or_app, "exec", None)
+    if callable(exec_fn):
+        return exec_fn()
+    return dialog_or_app.exec_()
+
+
+QT_CHECKED = _qt_enum("Checked", "CheckState")
+QT_UNCHECKED = _qt_enum("Unchecked", "CheckState")
+QT_PARTIALLY_CHECKED = _qt_enum("PartiallyChecked", "CheckState")
+QT_MATCH_FIXED_STRING = _qt_enum("MatchFixedString", "MatchFlag")
+QT_HORIZONTAL = _qt_enum("Horizontal", "Orientation")
+QT_WA_DELETE_ON_CLOSE = _qt_enum("WA_DeleteOnClose", "WidgetAttribute")
+QT_ITEM_IS_USER_CHECKABLE = _qt_enum("ItemIsUserCheckable", "ItemFlag")
+QT_ITEM_IS_ENABLED = _qt_enum("ItemIsEnabled", "ItemFlag")
+QT_PROCESS_NORMAL_EXIT = _qprocess_enum_any(("NormalExit",), "ExitStatus")
+QT_PROCESS_CRASH_EXIT = _qprocess_enum_any(("Crashed", "CrashExit"), "ExitStatus")
 
 XML_FILTER = 'XML-Dateien (*.xml)'
 ALL_FILES_FILTER = 'Alle Dateien (*.*)'
@@ -71,16 +128,16 @@ def check_status(item):
         child_count = parent.childCount()
         checked_count = 0
         for i in range(child_count):
-            if (parent.child(i).checkState(0) == QtCore.Qt.Checked):
+            if (parent.child(i).checkState(0) == QT_CHECKED):
                 checked_count += 1
         if checked_count == 0:
-            parent.setCheckState(0, QtCore.Qt.Unchecked)
+            parent.setCheckState(0, QT_UNCHECKED)
         elif checked_count == child_count:
-            parent.setCheckState(0, QtCore.Qt.Checked)
+            parent.setCheckState(0, QT_CHECKED)
         else:
-            parent.setCheckState(0, QtCore.Qt.PartiallyChecked)
+            parent.setCheckState(0, QT_PARTIALLY_CHECKED)
     # given item is category -> check or uncheck all children
-    if item.checkState(0) != QtCore.Qt.PartiallyChecked:
+    if item.checkState(0) != QT_PARTIALLY_CHECKED:
         state = item.checkState(0)
         check_children(item, state)
 
@@ -110,7 +167,7 @@ def get_selected(tree, get_all=False):
             # get checked sub-categories
             for j in range(col_count):
                 col_item = cat_item.child(j)
-                if(get_all or col_item.checkState(0) == QtCore.Qt.Checked):
+                if(get_all or col_item.checkState(0) == QT_CHECKED):
                     checked.append(col_item)
     return checked
 
@@ -323,7 +380,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
         for encoding in ENCODINGS:
             self.encoding_combo.addItem(encoding)
         default_idx = self.encoding_combo.findText(DEFAULT_ENCODING,
-                                                   QtCore.Qt.MatchFixedString)
+                                                   QT_MATCH_FIXED_STRING)
         self.encoding_combo.setCurrentIndex(default_idx)
 
         self.encoding_combo.currentIndexChanged.connect(self.encoding_changed)
@@ -416,7 +473,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Die angegebene Datei existiert nicht!")
-            msgBox.exec_()
+            qt_exec(msgBox)
             return False
         if not validate_dbstring(self.name):
             msgBox = QtWidgets.QMessageBox(
@@ -426,7 +483,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
                 'dem für Tabellennamen geforderten Muster\n'
                 '"^[a-z_][a-z0-9_]*$"\n'
                 '(nur Kleinbuchstaben, Ziffern und Unterstrich erlaubt)')
-            msgBox.exec_()
+            qt_exec(msgBox)
             return False
 
         if self.reserved_names:
@@ -435,7 +492,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
                     msgBox = QtWidgets.QMessageBox(
                         QtWidgets.QMessageBox.Warning, "Warnung!",
                         "Der Name '{}' ist bereits vergeben!".format(self.name))
-                    msgBox.exec_()
+                    qt_exec(msgBox)
                     return False
 
         if proj_not_in_db:
@@ -452,7 +509,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
                                            on_success=self.on_success,
                                            auto_close=auto_close,
                                            encoding=encoding)
-        self.upload_diag.exec_()
+        qt_exec(self.upload_diag)
         return True
 
     '''
@@ -465,7 +522,7 @@ class UploadShapeDialog(QtWidgets.QDialog, Ui_Upload):
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Sie müssen zunächst ein shapefile auswählen!")
-            msgBox.exec_()
+            qt_exec(msgBox)
             return
 
         prj_file = os.path.splitext(shapefile)[0] + '.prj'
@@ -572,7 +629,7 @@ class UploadAreaDialog(UploadShapeDialog):
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 "Es ist ein Fehler aufgetreten.\n" + '<b>{}</b>'.format(msg))
-            msgBox.exec_()
+            qt_exec(msgBox)
 
     def select_identifiers(self):
         '''
@@ -628,7 +685,7 @@ class SelectDialog(QtWidgets.QDialog):
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-            QtCore.Qt.Horizontal, self)
+            QT_HORIZONTAL, self)
 
         layout.addWidget(self.buttons)
 
@@ -648,7 +705,7 @@ class ProgressDialog(QtWidgets.QDialog, Ui_ProgressDialog):
         super(ProgressDialog, self).__init__(parent=parent)
         self.parent = parent
         self.setupUi(self)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setAttribute(QT_WA_DELETE_ON_CLOSE)
         self.progress_bar.setStyleSheet(DEFAULT_STYLE)
         self.progress_bar.setValue(0)
         self.cancelButton.clicked.connect(self.close)
@@ -773,7 +830,7 @@ class ExecDialog(ProgressDialog):
         super(ExecDialog, self).stopped()
 
     def finished(self):
-        if self.process.exitCode() == QtCore.QProcess.NormalExit:
+        if self.process.exitStatus() == QT_PROCESS_NORMAL_EXIT:
             self.progress_bar.setValue(100)
             self.progress_bar.setStyleSheet(FINISHED_STYLE)
         else:
@@ -818,7 +875,7 @@ class ExecUploadShape(ExecDialog):
         self.process.kill()
 
     def conversion_finished(self):
-        if self.conversion.exitCode() == QtCore.QProcess.Crashed:
+        if self.conversion.exitStatus() == QT_PROCESS_CRASH_EXIT:
             self.progress_bar.setStyleSheet(ABORTED_STYLE)
             self.stopped()
 
@@ -902,15 +959,15 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
                 cat_item = QtWidgets.QTreeWidgetItem(
                     self.tables_to_download_tree,
                     [category])
-                cat_item.setCheckState(0, QtCore.Qt.Unchecked)
-                cat_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                                  QtCore.Qt.ItemIsEnabled)
+                cat_item.setCheckState(0, QT_UNCHECKED)
+                cat_item.setFlags(QT_ITEM_IS_USER_CHECKABLE |
+                                  QT_ITEM_IS_ENABLED)
                 prev_cat = category
 
             col_item = QtWidgets.QTreeWidgetItem(cat_item, [tablename])
-            col_item.setCheckState(0,QtCore.Qt.Unchecked)
-            col_item.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                              QtCore.Qt.ItemIsEnabled)
+            col_item.setCheckState(0, QT_UNCHECKED)
+            col_item.setFlags(QT_ITEM_IS_USER_CHECKABLE |
+                              QT_ITEM_IS_ENABLED)
             col_item.setText(1, name)
 
         self.tables_to_download_tree.resizeColumnToContents(0)
@@ -923,7 +980,7 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 'Sie müssen ein Zielverzeichnis wählen!')
-            msgBox.exec_()
+            qt_exec(msgBox)
             return
 
         selected_tables = [i.text(0)
@@ -933,7 +990,7 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 'Sie müssen mindestens eine Tabelle auswählen')
-            msg_box.exec_()
+            qt_exec(msg_box)
             return
 
         for table in selected_tables:
@@ -944,6 +1001,6 @@ class DownloadTablesDialog(QtWidgets.QDialog, Ui_DownloadDataDialog):
             diag = ExecDownloadTableShape(
                 self.db_conn, schema, table, filename,
                 parent=self, auto_close=True)
-            diag.exec_()
+            qt_exec(diag)
 
         self.close()

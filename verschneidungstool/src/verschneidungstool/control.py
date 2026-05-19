@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtGui, QtCore, uic, QtWidgets, Qt
+from qgis.PyQt import QtGui, QtCore, uic, QtWidgets
 import os
 import psycopg2
 

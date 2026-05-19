@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from verschneidungstool.control import MainWindow
 import sys
 import os
-from PyQt5 import QtGui, QtWidgets, QtCore
+from qgis.PyQt import QtGui, QtWidgets, QtCore
 from verschneidungstool.config import Config, DEFAULT_SRID
 
 config = Config()
@@ -109,6 +109,9 @@ def startmain():
     mainwindow = MainWindow()
     mainwindow.show()
     mainwindow.exec_arguments(arguments)
+    exec_fn = getattr(app, "exec", None)
+    if callable(exec_fn):
+        sys.exit(exec_fn())
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

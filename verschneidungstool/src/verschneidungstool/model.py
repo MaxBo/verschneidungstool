@@ -7,13 +7,26 @@ from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
 from verschneidungstool.save2visumtransfer import (save_to_visum_transfer,
                                                    prepend_categories)
-from PyQt5 import QtCore
+from qgis.PyQt import QtCore
 import tempfile, os, shutil, re
 import csv
 from openpyxl import load_workbook, Workbook
 import pandas as pd
 
 config = Config()
+
+
+def _qprocess_state_not_running():
+    legacy = getattr(QtCore.QProcess, "NotRunning", None)
+    if legacy is not None:
+        return legacy
+    process_state = getattr(QtCore.QProcess, "ProcessState", None)
+    if process_state is None:
+        raise AttributeError("QProcess enum group 'ProcessState' not found")
+    return getattr(process_state, "NotRunning")
+
+
+QT_PROCESS_NOT_RUNNING = _qprocess_state_not_running()
 
 
 class DBConnection(object):
@@ -346,13 +359,13 @@ class DBConnection(object):
 
         # call callback with standard error and output
         def progress():
-            if process.state() != QtCore.QProcess.NotRunning:
+            if process.state() != QT_PROCESS_NOT_RUNNING:
                 out = bytearray(process.readAllStandardOutput())
                 err = bytearray(process.readAllStandardError())
                 if len(out) > 0: on_progress(out.decode('utf-8'))
                 if len(err) > 0: on_progress(err.decode('utf-8'))
 
-            if conversion_process.state() != QtCore.QProcess.NotRunning:
+            if conversion_process.state() != QT_PROCESS_NOT_RUNNING:
                 self.on_progress(str(conversion_process.readAllStandardError()))
 
         if self.on_progress:
