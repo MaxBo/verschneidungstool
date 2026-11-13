@@ -554,6 +554,7 @@ class UploadAreaDialog(UploadShapeDialog):
         self.on_finish = on_finish
         self.on_success = on_success
         self.setWindowTitle('Aggregationsstufe erstellen')
+        self.setMinimumHeight(650)
         self.source_frame = QtWidgets.QGroupBox('Datenquelle', self)
         source_layout = QtWidgets.QVBoxLayout(self.source_frame)
         self.shape_radio = QtWidgets.QRadioButton('Shapefile hochladen')
@@ -563,9 +564,9 @@ class UploadAreaDialog(UploadShapeDialog):
         source_layout.addWidget(self.existing_radio)
         self.verticalLayout.insertWidget(0, self.source_frame)
         name_layout = QtWidgets.QFormLayout()
-        self.area_name_edit = QtWidgets.QLineEdit(self)
+        self.area_name_edit = QtWidgets.QLineEdit(self.identifiers_frame)
         name_layout.addRow('Name der Aggregationsstufe', self.area_name_edit)
-        self.verticalLayout.insertLayout(1, name_layout)
+        self.verticalLayout_3.insertLayout(0, name_layout)
         self.label_2.setText('Tabellenname')
         self.layer_label = QtWidgets.QLabel('Verkehrszellen-Layer', self)
         self.layer_combo = QtWidgets.QComboBox(self)
