@@ -143,6 +143,7 @@ class RegistrationTests(unittest.TestCase):
         self.register((3, 3, 3, 3, True))
         insert, params = self.cursor.execute.call_args.args
         self.assertIn('INSERT INTO', str(insert))
+        self.assertRegex(str(insert), r'VALUES \(%s, %s, %s, TRUE,')
         self.assertEqual(params, ("Region O'Brien", 'public', 'zones', 'id', 'id', 'id'))
         self.conn.commit.assert_called_once()
 
@@ -166,6 +167,29 @@ class RegistrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.register((3, 3, 3, 3, True), duplicate=True)
         self.conn.commit.assert_not_called()
+
+
+class RemovalTests(unittest.TestCase):
+    def test_standalone_removal_also_drops_source_table(self):
+        db = DBConnection(None)
+        db.get_last_calculated = MagicMock(return_value=[])
+        db.execute = MagicMock()
+        success, message = db.drop_area(7, 'zones', 'public')
+        self.assertTrue(success)
+        self.assertEqual(db.execute.call_count, 2)
+        query = db.execute.call_args_list[0].args[0].upper()
+        self.assertIn('DELETE FROM', query)
+        self.assertIn('AREAS_AVAILABLE', query)
+        self.assertEqual(db.execute.call_args_list[1].args[0], 'DROP TABLE IF EXISTS "public"."zones"')
+
+    def test_latest_calculation_guard_returns_message_without_deleting(self):
+        db = DBConnection(None)
+        db.get_last_calculated = MagicMock(return_value=[Row(schema='public', table_name='zones')])
+        db.execute = MagicMock()
+        success, message = db.drop_area(7, 'zones', 'public')
+        self.assertFalse(success)
+        self.assertIn('letzte Verschneidung', message)
+        db.execute.assert_not_called()
 
 
 if __name__ == '__main__':

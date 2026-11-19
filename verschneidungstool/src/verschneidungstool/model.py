@@ -114,7 +114,7 @@ class DBConnection(object):
             cursor.execute(pg_sql.SQL("""
                 INSERT INTO {} (area_name, schema, table_name, can_be_deleted,
                                 pkey, zone_id, zone_name)
-                VALUES (%s, %s, %s, FALSE, %s, %s, %s)
+                VALUES (%s, %s, %s, TRUE, %s, %s, %s)
             """).format(pg_sql.Identifier(self.vt_schema, 'areas_available')),
                 (name, schema, table, id_column, id_column, name_column or id_column))
             conn.commit()
@@ -221,23 +221,20 @@ class DBConnection(object):
         return self.fetch(sql)
 
     def drop_area(self, id, table, schema):
-
+        """Standalone tool: remove the registration and its source table."""
         last = self.get_last_calculated()
-        if schema == last[0].schema and table == last[0].table_name:
-            return False,
-        (f'{schema}.{table} kann nicht gelöscht werden,\n'
-         'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n'
-         'Bitte führen Sie zunächst eine Verschneidung mit einer\n'
-         'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
+        if last and schema == last[0].schema and table == last[0].table_name:
+            return (False,
+                    f'{schema}.{table} kann nicht gelöscht werden,\n'
+                    'da die letzte Verschneidung mit dieser Aggregation erfolgte. \n\n'
+                    'Bitte führen Sie zunächst eine Verschneidung mit einer\n'
+                    'anderen Aggregationsstufe durch, bevor Sie diese löschen.')
         # remove row from available schemata
         sql_remove = f"""
         DELETE FROM {self.vt_schema}.areas_available
         WHERE id = {id}
         """
-        # drop table
-        sql_drop = f"""
-        Drop TABLE IF EXISTS "{schema}"."{table}"
-        """
+        sql_drop = f'DROP TABLE IF EXISTS "{schema}"."{table}"'
         try:
             self.execute(sql_remove)
             self.execute(sql_drop)
