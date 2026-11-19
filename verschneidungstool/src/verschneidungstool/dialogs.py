@@ -544,29 +544,179 @@ class UploadAreaDialog(UploadShapeDialog):
     '''
     def __init__(self, db_connection, schemata, parent=None, on_finish=None,
                  reserved_names=None, on_success=None, auto_args=None):
+        self.existing_source = False
         upload_function = db_connection.add_area
         super(UploadAreaDialog, self).__init__(
             db_connection, schemata, upload_function, parent=parent,
-            on_finish=on_finish, reserved_names=reserved_names,
-            on_success=on_success, auto_args=auto_args)
+            on_finish=None, reserved_names=reserved_names,
+            on_success=None, auto_args=None)
+        self.auto_args = auto_args
+        self.on_finish = on_finish
+        self.on_success = on_success
+        self.setWindowTitle('Aggregationsstufe erstellen')
+        self.setMinimumHeight(650)
+        self.source_frame = QtWidgets.QGroupBox('Datenquelle', self)
+        source_layout = QtWidgets.QVBoxLayout(self.source_frame)
+        self.shape_radio = QtWidgets.QRadioButton('Shapefile hochladen')
+        self.existing_radio = QtWidgets.QRadioButton('Vorhandenen Layer auswählen')
+        self.shape_radio.setChecked(True)
+        source_layout.addWidget(self.shape_radio)
+        source_layout.addWidget(self.existing_radio)
+        self.verticalLayout.insertWidget(0, self.source_frame)
+        name_layout = QtWidgets.QFormLayout()
+        self.area_name_edit = QtWidgets.QLineEdit(self.identifiers_frame)
+        name_layout.addRow('Name der Aggregationsstufe', self.area_name_edit)
+        self.verticalLayout_3.insertLayout(0, name_layout)
+        self.label_2.setText('Tabellenname')
+        self.layer_label = QtWidgets.QLabel('Verkehrszellen-Layer', self)
+        self.layer_combo = QtWidgets.QComboBox(self)
+        self.gridLayout_4.addWidget(self.layer_label, 6, 0)
+        self.gridLayout_4.addWidget(self.layer_combo, 6, 1, 1, 2)
+        self.layer_label.hide()
+        self.layer_combo.hide()
+        self.existing_radio.toggled.connect(self.source_changed)
+        self.schema_combo.currentIndexChanged.connect(self.refresh_layers)
         self.identifiers_frame.setHidden(False)
         self.OK_button.setDisabled(True)
+        self.OK_button.clicked.connect(self.set_identifiers)
+        if auto_args:
+            self.auto_start()
+
+    def warn(self, message):
+        QtWidgets.QMessageBox.warning(self, 'Warnung!', str(message))
+
+    def auto_start(self):
+        """Keep the legacy command-line shape arguments working."""
+        args = self.auto_args
+        self.shapefile_edit.setText(args['shape_path'])
+        schema_index = self.schema_combo.findText(args['schema'])
+        if schema_index < 0:
+            self.schema_combo.addItem(args['schema'])
+            schema_index = self.schema_combo.count() - 1
+        self.schema_combo.setCurrentIndex(schema_index)
+        table = args.get('table_name') or os.path.splitext(os.path.basename(args['shape_path']))[0].lower()
+        self.name_edit.setText(table)
+        self.schema, self.name = args['schema'], table
+        self.area_name_edit.setText(args.get('area_name') or table)
+        srid = args.get('srid')
+        if srid:
+            index = next((i for i in range(self.projection_combo.count())
+                          if self.projection_combo.itemData(i)[0] == int(srid)), -1)
+            if index < 0:
+                self.projection_combo.addItem(str(srid), [int(srid), str(srid), False])
+                index = self.projection_combo.count() - 1
+            self.projection_combo.setCurrentIndex(index)
+        else:
+            self.analyse_projection_file()
+            self.check_srid()
+        if not self.upload():
+            return
+        self.select_identifiers()
+        if not args.get('c_id'):
+            return
+        self.pkey_combo.setCurrentText(args['c_id'])
+        self.names_combo.setCurrentText(args.get('c_name') or '')
+        self.set_identifiers()
+
+    def source_changed(self, existing):
+        self.existing_source = existing
+        for widget in (self.shapefile_edit, self.shapefile_browse_button,
+                       self.label_6, self.encoding_combo, self.custom_encoding_edit,
+                       self.label_8, self.name_edit, self.label_2,
+                       self.projection_combo, self.check_projection_button, self.label_3):
+            widget.setVisible(not existing)
+        self.layer_label.setVisible(existing)
+        self.layer_combo.setVisible(existing)
+        self.upload_button.setText('Übernehmen' if existing else 'Hochladen')
+        self.identifiers_frame.setDisabled(True)
+        self.OK_button.setDisabled(True)
+        self.message_edit.clear()
+        if existing:
+            self.refresh_layers()
+
+    def refresh_layers(self):
+        if not self.existing_source:
+            return
+        self.layer_combo.clear()
+        try:
+            # The legacy registry addresses a relation by schema/table, so only
+            # one geometry column can be used (prefer the conventional geom).
+            relations = {}
+            for layer in self.db_connection.get_polygon_layers(self.schema_combo.currentText()):
+                if layer.table_name not in relations or layer.geometry_column == 'geom':
+                    relations[layer.table_name] = layer
+            kinds = {'v': 'View', 'm': 'Materialisierte View', 'r': 'Tabelle', 'p': 'Tabelle'}
+            for layer in relations.values():
+                self.layer_combo.addItem(
+                    '{} ({})'.format(layer.table_name, kinds[layer.relkind]), layer.table_name)
+            self.message_edit.setPlainText(
+                'Die gewählte ID muss eindeutig, nicht leer und als Ganzzahl verwendbar sein. '
+                'Views zeigen den aktuellen Datenstand; materialisierte Views den Stand '
+                'ihrer letzten Aktualisierung. Bei mehreren Geometriespalten wird '
+                '„geom“, sonst die alphabetisch erste Polygonspalte verwendet.'
+                if relations else 'Keine lesbaren Polygon-/MultiPolygon-Layer in diesem Schema gefunden.')
+        except Exception as error:
+            self.warn(error)
 
     def upload(self):
-        success = super(UploadAreaDialog, self).upload()
-        if success and not self.auto_args:
+        if self.existing_source:
+            self.schema = self.schema_combo.currentText()
+            self.name = self.layer_combo.currentData()
+            if not self.name:
+                self.warn('Bitte wählen Sie einen Polygon-/MultiPolygon-Layer aus.')
+                return
             self.select_identifiers()
+            return
+        # Notify the parent only after identifiers and display name are saved.
+        on_finish, on_success = self.on_finish, self.on_success
+        self.on_finish = self.on_success = None
+        try:
+            success = super(UploadAreaDialog, self).upload()
+        finally:
+            self.on_finish, self.on_success = on_finish, on_success
+        if success:
+            # The process dialog may also have returned after a failed upload.
+            registered = any(r.schema == self.schema and r.table_name == self.name
+                             for r in self.db_connection.get_areas_available())
+            if registered and not self.auto_args:
+                self.select_identifiers()
+            return registered
+        return False
 
     def set_identifiers(self):
         # try to set zone with selected values, repeat if errors occure
         id_key = self.pkey_combo.currentText()
         name_key = self.names_combo.currentText()
-
-        success, msg = self.db_connection.set_zone(
-            self.schema, self.name,
-            zone_id_column=id_key, zone_name_column=name_key)
+        display_name = self.area_name_edit.text().strip()
+        if not display_name:
+            self.warn('Bitte geben Sie einen Namen für die Aggregationsstufe ein.')
+            return
+        if display_name in (self.reserved_names or []):
+            self.warn('Der Name ist bereits vergeben.')
+            return
+        if not id_key:
+            self.warn('Bitte wählen Sie eine ID-Spalte aus.')
+            return
+        try:
+            if self.existing_source:
+                self.db_connection.register_existing_area(
+                    self.schema, self.name, display_name, id_key, name_key)
+                success, msg = True, ''
+            else:
+                success, msg = self.db_connection.set_zone(
+                    self.schema, self.name,
+                    zone_id_column=id_key, zone_name_column=name_key)
+                if success:
+                    self.db_connection.set_area_display_name(self.schema, self.name, display_name)
+        except Exception as error:
+            self.warn(error)
+            return
 
         if success:
+            if self.on_finish:
+                self.on_finish()
+            if self.on_success:
+                self.on_success()
             self.accept()
         else:
             msgBox = QtWidgets.QMessageBox(
@@ -579,22 +729,34 @@ class UploadAreaDialog(UploadShapeDialog):
         removes all elements of this dialog and creates comboboxes to
         ask for id and name of newly created zone
         '''
+        try:
+            key_columns = self.db_connection.get_column_names(self.schema, self.name)
+            geometry_columns = {r.geometry_column for r in
+                                self.db_connection.get_polygon_layers(self.schema)
+                                if r.table_name == self.name}
+        except Exception as error:
+            self.warn(error)
+            return
+        if not key_columns:
+            self.warn('Der Layer enthält keine auswählbaren Spalten.')
+            return
         self.upload_frame.setDisabled(True)
-
-        key_columns = self.db_connection.get_column_names(
-            self.schema, self.name)
+        self.source_frame.setDisabled(True)
+        if not self.area_name_edit.text().strip():
+            self.area_name_edit.setText(self.name)
         # remove column geom, this one shouldn't become pkey
         key_columns = [col.column_name for col in key_columns
-                       if col.column_name != 'geom']
+                       if col.column_name not in geometry_columns]
         # selection for names is same list with leading empty element
         name_columns = [''] + copy.deepcopy(key_columns)
 
+        self.pkey_combo.clear()
+        self.names_combo.clear()
         self.pkey_combo.addItems(key_columns)
         self.names_combo.addItems(name_columns)
 
         self.identifiers_frame.setDisabled(False)
-        self.OK_button.clicked.connect(self.set_identifiers)
-        self.cancel_button.setDisabled(True)
+        self.cancel_button.setDisabled(not self.existing_source)
         self.OK_button.setDisabled(False)
 
 

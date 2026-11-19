@@ -2,6 +2,7 @@
 from typing import List
 from collections import defaultdict
 import psycopg2
+from psycopg2 import sql as pg_sql
 from sqlalchemy.sql import text
 from verschneidungstool.connection import Connection
 from verschneidungstool.config import Config
@@ -57,6 +58,72 @@ class DBConnection(object):
         ORDER BY id
         """
         return self.fetch(sql)
+
+    def get_polygon_layers(self, schema):
+        """Readable polygon relations, including views and materialized views."""
+        with Connection(login=self.login) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT g.f_table_name AS table_name,
+                       g.f_geometry_column AS geometry_column, c.relkind
+                FROM geometry_columns g
+                JOIN pg_namespace n ON n.nspname = g.f_table_schema
+                JOIN pg_class c ON c.relnamespace = n.oid
+                               AND c.relname = g.f_table_name
+                WHERE g.f_table_schema = %s
+                  AND upper(g.type) IN ('POLYGON', 'MULTIPOLYGON')
+                  AND c.relkind IN ('r', 'p', 'v', 'm')
+                  AND has_table_privilege(c.oid, 'SELECT')
+                ORDER BY g.f_table_name, g.f_geometry_column
+            """, (schema,))
+            return cursor.fetchall()
+
+    def register_existing_area(self, schema, table, name, id_column, name_column=''):
+        """Validate and register a source without altering it; views need no PK."""
+        if not name.strip():
+            raise ValueError('Der Name der Aggregationsstufe darf nicht leer sein.')
+        if not any(r.table_name == table for r in self.get_polygon_layers(schema)):
+            raise ValueError('Der Layer ist kein lesbarer Polygon-/MultiPolygon-Layer.')
+        columns = {r.column_name for r in self.get_column_names(schema, table)}
+        if id_column not in columns or (name_column and name_column not in columns):
+            raise ValueError('Die gewählten Spalten sind nicht mehr vorhanden.')
+        with Connection(login=self.login) as conn:
+            cursor = conn.cursor()
+            cursor.execute(pg_sql.SQL("""
+                SELECT count(*), count({id}), count(DISTINCT {id}),
+                       count(DISTINCT {id}::integer),
+                       bool_and({id}::text ~ '^[+-]?[0-9]+$')
+                FROM {source}
+            """).format(id=pg_sql.Identifier(id_column),
+                         source=pg_sql.Identifier(schema, table)))
+            total, nonnull, distinct, integer_distinct, integral = cursor.fetchone()
+            if not total or not integral or total != nonnull or total != distinct or total != integer_distinct:
+                raise ValueError('Die ID-Spalte muss eindeutige, nicht leere Ganzzahlen '
+                                 'enthalten; der Layer darf nicht leer sein.')
+            # Metadata is all that changes, in one transaction. Prevent duplicate
+            # registrations, since legacy consumers address sources by schema/table.
+            cursor.execute(pg_sql.SQL('LOCK TABLE {} IN SHARE ROW EXCLUSIVE MODE').format(
+                pg_sql.Identifier(self.vt_schema, 'areas_available')))
+            cursor.execute(pg_sql.SQL('SELECT 1 FROM {} WHERE '
+                                     'area_name = %s OR (schema = %s AND table_name = %s)').format(
+                pg_sql.Identifier(self.vt_schema, 'areas_available')), (name, schema, table))
+            if cursor.fetchone():
+                raise ValueError('Der Name oder der Layer ist bereits als Aggregationsstufe registriert.')
+            cursor.execute(pg_sql.SQL("""
+                INSERT INTO {} (area_name, schema, table_name, can_be_deleted,
+                                pkey, zone_id, zone_name)
+                VALUES (%s, %s, %s, FALSE, %s, %s, %s)
+            """).format(pg_sql.Identifier(self.vt_schema, 'areas_available')),
+                (name, schema, table, id_column, id_column, name_column or id_column))
+            conn.commit()
+
+    def set_area_display_name(self, schema, table, name):
+        with Connection(login=self.login) as conn:
+            cursor = conn.cursor()
+            cursor.execute(pg_sql.SQL('UPDATE {} SET area_name = %s '
+                                     'WHERE schema = %s AND table_name = %s').format(
+                pg_sql.Identifier(self.vt_schema, 'areas_available')), (name, schema, table))
+            conn.commit()
 
     def get_scenarios_available(self):
         sql = f"""
@@ -210,13 +277,18 @@ class DBConnection(object):
         return self.fetch(sql)
 
     def get_column_names(self, schema, table):
-        sql = f"""
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = '{schema}'
-        AND table_name = '{table}'
-        """
-        return self.fetch(sql)
+        with Connection(login=self.login) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT a.attname AS column_name
+                FROM pg_attribute a
+                JOIN pg_class c ON c.oid = a.attrelid
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = %s AND c.relname = %s
+                  AND a.attnum > 0 AND NOT a.attisdropped
+                ORDER BY a.attnum
+            """, (schema, table))
+            return cursor.fetchall()
 
     def get_pkey(self, schema, table):
         '''
@@ -283,7 +355,9 @@ class DBConnection(object):
         ADD COLUMN pnt geometry(POINT, {srid});
         UPDATE "{schema}"."{table}" SET pnt = st_setsrid(st_makepoint(xcoord, ycoord), {srid});
         """
-        self.execute(sql_add_point)
+        columns = {r.column_name for r in self.get_column_names(schema, table)}
+        if 'pnt' not in columns and {'xcoord', 'ycoord'} <= columns:
+            self.execute(sql_add_point)
 
         return True, ''
 
@@ -452,6 +526,22 @@ class DBConnection(object):
         fetch = self.fetch
         execute = self.execute
         vt_schema = self.vt_schema
+        def identifier(value):
+            return '"' + value.replace('"', '""') + '"'
+
+        source_ref = f'{identifier(schema)}.{identifier(table)}'
+        schema_literal = "'" + schema.replace("'", "''") + "'"
+        table_literal = "'" + table.replace("'", "''") + "'"
+
+        columns = {r.column_name for r in self.get_column_names(schema, table)}
+        geometries = [r.geometry_column for r in self.get_polygon_layers(schema)
+                      if r.table_name == table]
+        geometry = 'geom' if 'geom' in geometries else (geometries[0] if geometries else 'geom')
+        geometry_ref = 't."{}"'.format(geometry.replace('"', '""'))
+        point_expression = f'st_pointonsurface(st_transform({geometry_ref}, {srid}))'
+        if {'xcoord', 'ycoord'} <= columns:
+            point_expression = (f'CASE WHEN t.xcoord IS NULL OR t.ycoord IS NULL THEN {point_expression} '
+                                f'ELSE st_setsrid(st_makepoint(t.xcoord, t.ycoord), {srid}) END')
 
         class Intersection(QtCore.QThread):
             progress = QtCore.pyqtSignal(str, float)
@@ -464,8 +554,8 @@ class DBConnection(object):
                 sql_pkey = f"""
                 SELECT pkey, zone_name, zone_id
                 FROM {vt_schema}.areas_available
-                WHERE schema='{schema}'
-                AND table_name='{table}';
+                WHERE schema={schema_literal}
+                AND table_name={table_literal};
                 """
 
                 sql_queries = f"""
@@ -498,25 +588,24 @@ class DBConnection(object):
                 if zone_name is None or zone_name == '':
                     name_str = "''"
                 else:
-                    name_str = f't."{zone_name}"'
+                    name_str = f't.{identifier(zone_name)}'
+                zone_id_ref = f't.{identifier(zone_id)}'
                 sql_insert = f"""
                 INSERT INTO {vt_schema}.scenario (area_id, start_time, end_time, started, finished)
                 SELECT a.id, clock_timestamp(), NULL,  True, False
                 FROM {vt_schema}.areas_available AS a
-                WHERE a.schema = '{schema}' AND a.table_name = '{table}'
+                WHERE a.schema = {schema_literal} AND a.table_name = {table_literal}
                 RETURNING id;
                 """
                 sql_create_view = f"""
                 CREATE OR REPLACE VIEW vz.view_vz_aktuell (vz_id, geom, zone_name, pnt) AS
                 SELECT
-                t."{zone_id}"::integer AS vz_id,
-                st_multi(st_transform(t.geom, {srid}))::geometry(MULTIPOLYGON, {srid}) AS geom,
+                {zone_id_ref}::integer AS vz_id,
+                st_multi(st_transform({geometry_ref}, {srid}))::geometry(MULTIPOLYGON, {srid}) AS geom,
                 {name_str}::text AS zone_name,
-                CASE WHEN t.xcoord IS NULL THEN st_pointonsurface(t.geom)::geometry(Point, {srid})
-                ELSE st_setsrid(st_makepoint(t.xcoord, t.ycoord), {srid})::geometry(Point, {srid})
-                END AS pnt
+                ({point_expression})::geometry(Point, {srid}) AS pnt
 
-                FROM "{schema}"."{table}" AS t;
+                FROM {source_ref} AS t;
                 """
                 progress = 0.0
                 try:
@@ -559,27 +648,19 @@ class DBConnection(object):
             def add_pnt_column_if_exists(self, zone_id, name_str):
                 # add point column, if exists
                 col_pnt = 'pnt'
-                sql_col_exists = f'''
-                            SELECT EXISTS (SELECT 1
-                            FROM information_schema.columns
-                            WHERE table_schema='{schema}'
-                            AND table_name='{table}'
-                            AND column_name='{col_pnt}');
-                            '''
-                col_exists = fetch(sql_col_exists)
-                if col_exists[0][0]:
+                if col_pnt in columns:
                     pnt_col_def = f't."{col_pnt}"::geometry(POINT)'
                 else:
-                    pnt_col_def = 'st_pointonsurface(t.geom)::geometry(POINT)'
+                    pnt_col_def = f'{point_expression}::geometry(POINT)'
 
                 sql_pnt = f"""
                 CREATE OR REPLACE VIEW vz.view_vz_aktuell_pnt (vz_id, pnt, zone_name) AS
                 SELECT
-                t."{zone_id}"::integer AS vz_id,
+                t.{identifier(zone_id)}::integer AS vz_id,
                 {pnt_col_def} AS pnt,
                 {name_str}::text AS zone_name
 
-                FROM "{schema}"."{table}" AS t;"""
+                FROM {source_ref} AS t;"""
                 execute(sql_pnt)
 
         thread = Intersection()
