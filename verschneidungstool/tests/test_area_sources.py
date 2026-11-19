@@ -3,12 +3,14 @@ import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 import unittest
+import re
 from types import SimpleNamespace as Row
 from unittest.mock import MagicMock, patch
 
 from PyQt5.QtWidgets import QApplication, QDialog
 from verschneidungstool.dialogs import UploadAreaDialog, UploadShapeDialog
 from verschneidungstool.model import DBConnection
+from psycopg2.extras import NamedTupleCursor
 
 
 class AreaDialogTests(unittest.TestCase):
@@ -143,6 +145,15 @@ class RegistrationTests(unittest.TestCase):
         self.assertIn('INSERT INTO', str(insert))
         self.assertEqual(params, ("Region O'Brien", 'public', 'zones', 'id', 'id', 'id'))
         self.conn.commit.assert_called_once()
+
+    def test_id_validation_result_has_unique_named_tuple_fields(self):
+        self.register((3, 3, 3, 3, True))
+        query = self.cursor.execute.call_args_list[0].args[0]
+        fields = tuple(re.findall(r'\bAS\s+(\w+)', str(query)))
+        self.assertEqual(len(fields), 5)
+        record_type = NamedTupleCursor._do_make_nt(fields)
+        result = record_type(3, 3, 3, 3, True)
+        self.assertEqual(tuple(result), (3, 3, 3, 3, True))
 
     def test_reject_null_duplicate_empty_and_noninteger_ids(self):
         for counts in [(0, 0, 0, 0, None), (3, 2, 2, 2, True),

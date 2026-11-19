@@ -90,9 +90,11 @@ class DBConnection(object):
         with Connection(login=self.login) as conn:
             cursor = conn.cursor()
             cursor.execute(pg_sql.SQL("""
-                SELECT count(*), count({id}), count(DISTINCT {id}),
-                       count(DISTINCT {id}::integer),
-                       bool_and({id}::text ~ '^[+-]?[0-9]+$')
+                SELECT count(*) AS total_count,
+                       count({id}) AS nonnull_count,
+                       count(DISTINCT {id}) AS distinct_count,
+                       count(DISTINCT {id}::integer) AS integer_distinct_count,
+                       bool_and({id}::text ~ '^[+-]?[0-9]+$') AS all_integral
                 FROM {source}
             """).format(id=pg_sql.Identifier(id_column),
                          source=pg_sql.Identifier(schema, table)))
