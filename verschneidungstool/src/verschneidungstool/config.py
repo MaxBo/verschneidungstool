@@ -48,6 +48,16 @@ class Config(Borg):
 
     def __init__(self):
         Borg.__init__(self)
+        # QGIS uses Config without the standalone application's config.read().
+        # Provide complete in-memory defaults, without reading/writing a file
+        # next to the QGIS executable or replacing existing shared settings.
+        if not hasattr(self, 'settings'):
+            self.settings = copy.deepcopy(setting_struct)
+        else:
+            for section, values in setting_struct.items():
+                target = self.settings.setdefault(section, {})
+                for key, value in values.items():
+                    target.setdefault(key, copy.deepcopy(value))
 
     def read(self, filename=None):
         '''
