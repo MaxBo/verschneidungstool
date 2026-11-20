@@ -74,6 +74,43 @@ class AreaDialogTests(unittest.TestCase):
         self.finished.assert_not_called()
         self.assertNotEqual(d.result(), QDialog.Accepted)
 
+    def test_existing_source_has_no_explanation_and_can_return_to_step_one(self):
+        d = self.dialog
+        d.existing_radio.setChecked(True)
+        self.assertEqual(d.message_edit.toPlainText(), '')
+        self.assertTrue(d.message_edit.isHidden())
+        self.assertTrue(d.back_button.isHidden())
+        d.upload()
+        self.assertFalse(d.back_button.isHidden())
+        d.back_button.click()
+        self.assertTrue(d.upload_frame.isEnabled())
+        self.assertTrue(d.source_frame.isEnabled())
+        self.assertFalse(d.identifiers_frame.isEnabled())
+        self.assertFalse(d.OK_button.isEnabled())
+        self.assertTrue(d.cancel_button.isEnabled())
+        self.assertTrue(d.back_button.isHidden())
+        self.assertEqual(d.pkey_combo.count(), 0)
+        self.db.register_existing_area.assert_not_called()
+        d.layer_combo.setCurrentIndex(1)
+        d.upload()
+        self.assertEqual(d.area_name_edit.text(), 'cached')
+        d.OK_button.click()
+        self.db.register_existing_area.assert_called_once_with('public', 'cached', 'cached', 'id', '')
+
+    def test_back_preserves_custom_name_and_allows_switching_source(self):
+        d = self.dialog
+        d.existing_radio.setChecked(True)
+        d.upload()
+        d.area_name_edit.setText('Meine Gebiete')
+        d.back_button.click()
+        d.upload()
+        self.assertEqual(d.area_name_edit.text(), 'Meine Gebiete')
+        d.back_button.click()
+        d.shape_radio.setChecked(True)
+        self.assertTrue(d.back_button.isHidden())
+        self.assertFalse(d.message_edit.isHidden())
+        self.db.register_existing_area.assert_not_called()
+
     def test_shape_retains_table_name_and_sets_display_name(self):
         d = self.dialog
         d.schema, d.name = 'public', 'legacy_table'

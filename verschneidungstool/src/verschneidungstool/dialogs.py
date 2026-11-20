@@ -570,8 +570,9 @@ class UploadAreaDialog(UploadShapeDialog):
         self.label_2.setText('Tabellenname')
         self.layer_label = QtWidgets.QLabel('Verkehrszellen-Layer', self)
         self.layer_combo = QtWidgets.QComboBox(self)
-        self.gridLayout_4.addWidget(self.layer_label, 6, 0)
-        self.gridLayout_4.addWidget(self.layer_combo, 6, 1, 1, 2)
+        self.gridLayout_4.addWidget(self.layer_label, 3, 0)
+        self.gridLayout_4.addWidget(self.layer_combo, 3, 1, 1, 2)
+        self.projection_spacer = self.gridLayout_4.itemAtPosition(4, 1).spacerItem()
         self.layer_label.hide()
         self.layer_combo.hide()
         self.existing_radio.toggled.connect(self.source_changed)
@@ -579,6 +580,10 @@ class UploadAreaDialog(UploadShapeDialog):
         self.identifiers_frame.setHidden(False)
         self.OK_button.setDisabled(True)
         self.OK_button.clicked.connect(self.set_identifiers)
+        self.back_button = QtWidgets.QPushButton('Zurück', self)
+        self.back_button.setHidden(True)
+        self.back_button.clicked.connect(self.back_to_source)
+        self.horizontalLayout_2.insertWidget(0, self.back_button)
         if auto_args:
             self.auto_start()
 
@@ -627,10 +632,17 @@ class UploadAreaDialog(UploadShapeDialog):
             widget.setVisible(not existing)
         self.layer_label.setVisible(existing)
         self.layer_combo.setVisible(existing)
+        self.projection_spacer.changeSize(
+            20, 0 if existing else 40, QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Fixed if existing else QtWidgets.QSizePolicy.Expanding)
+        self.gridLayout_4.setAlignment(QtCore.Qt.AlignTop if existing else QtCore.Qt.Alignment())
+        self.gridLayout_4.invalidate()
         self.upload_button.setText('Übernehmen' if existing else 'Hochladen')
         self.identifiers_frame.setDisabled(True)
         self.OK_button.setDisabled(True)
+        self.back_button.setHidden(True)
         self.message_edit.clear()
+        self.message_edit.setVisible(not existing)
         if existing:
             self.refresh_layers()
 
@@ -650,13 +662,25 @@ class UploadAreaDialog(UploadShapeDialog):
                 self.layer_combo.addItem(
                     '{} ({})'.format(layer.table_name, kinds[layer.relkind]), layer.table_name)
             self.message_edit.setPlainText(
-                'Die gewählte ID muss eindeutig, nicht leer und als Ganzzahl verwendbar sein. '
-                'Views zeigen den aktuellen Datenstand; materialisierte Views den Stand '
-                'ihrer letzten Aktualisierung. Bei mehreren Geometriespalten wird '
-                '„geom“, sonst die alphabetisch erste Polygonspalte verwendet.'
-                if relations else 'Keine lesbaren Polygon-/MultiPolygon-Layer in diesem Schema gefunden.')
+                '' if relations else 'Keine lesbaren Polygon-/MultiPolygon-Layer in diesem Schema gefunden.')
+            self.message_edit.setVisible(not relations)
         except Exception as error:
             self.warn(error)
+
+    def back_to_source(self):
+        if not self.existing_source:
+            return
+        # No source or registration is created before confirming step 2.
+        if self.area_name_edit.text() == self.name:
+            self.area_name_edit.clear()
+        self.upload_frame.setEnabled(True)
+        self.source_frame.setEnabled(True)
+        self.identifiers_frame.setDisabled(True)
+        self.pkey_combo.clear()
+        self.names_combo.clear()
+        self.OK_button.setDisabled(True)
+        self.cancel_button.setEnabled(True)
+        self.back_button.setHidden(True)
 
     def upload(self):
         if self.existing_source:
@@ -756,6 +780,7 @@ class UploadAreaDialog(UploadShapeDialog):
         self.names_combo.addItems(name_columns)
 
         self.identifiers_frame.setDisabled(False)
+        self.back_button.setVisible(self.existing_source)
         self.cancel_button.setDisabled(not self.existing_source)
         self.OK_button.setDisabled(False)
 
