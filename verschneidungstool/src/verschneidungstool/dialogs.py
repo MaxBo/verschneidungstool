@@ -715,13 +715,19 @@ class UploadAreaDialog(UploadShapeDialog):
         if not display_name:
             self.warn('Bitte geben Sie einen Namen für die Aggregationsstufe ein.')
             return
-        if display_name in (self.reserved_names or []):
-            self.warn('Der Name ist bereits vergeben.')
-            return
         if not id_key:
             self.warn('Bitte wählen Sie eine ID-Spalte aus.')
             return
         try:
+            # Refresh the dialog's name check before saving. Shapefile uploads
+            # already have their own provisional registration at this point.
+            for area in self.db_connection.get_areas_available():
+                if (not self.existing_source and area.schema == self.schema
+                        and area.table_name == self.name):
+                    continue
+                if area.area_name == display_name:
+                    self.warn('Der Name ist bereits vergeben.')
+                    return
             if self.existing_source:
                 self.db_connection.register_existing_area(
                     self.schema, self.name, display_name, id_key, name_key)

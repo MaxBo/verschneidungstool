@@ -74,6 +74,41 @@ class AreaDialogTests(unittest.TestCase):
         self.finished.assert_not_called()
         self.assertNotEqual(d.result(), QDialog.Accepted)
 
+    def test_existing_source_rejects_name_that_was_taken_after_dialog_opened(self):
+        d = self.dialog
+        d.existing_radio.setChecked(True)
+        d.upload()
+        d.area_name_edit.setText('Vergeben')
+        self.db.get_areas_available.return_value = [Row(area_name='Vergeben', schema='other', table_name='areas')]
+        d.OK_button.click()
+        d.warn.assert_called_once_with('Der Name ist bereits vergeben.')
+        self.db.register_existing_area.assert_not_called()
+        self.finished.assert_not_called()
+        self.assertNotEqual(d.result(), QDialog.Accepted)
+
+    def test_shapefile_alias_rejects_duplicate_in_different_schema(self):
+        d = self.dialog
+        d.schema, d.name = 'public', 'uploaded'
+        d.select_identifiers()
+        d.area_name_edit.setText('Vergeben')
+        self.db.get_areas_available.return_value = [
+            Row(area_name='uploaded', schema='public', table_name='uploaded'),
+            Row(area_name='Vergeben', schema='other', table_name='areas')]
+        d.OK_button.click()
+        d.warn.assert_called_once_with('Der Name ist bereits vergeben.')
+        self.db.set_zone.assert_not_called()
+        self.db.set_area_display_name.assert_not_called()
+
+    def test_shapefile_may_keep_its_own_default_name(self):
+        d = self.dialog
+        d.schema, d.name = 'public', 'uploaded'
+        d.select_identifiers()
+        self.db.get_areas_available.return_value = [Row(area_name='uploaded', schema='public', table_name='uploaded')]
+        d.OK_button.click()
+        d.warn.assert_not_called()
+        self.db.set_area_display_name.assert_called_once_with('public', 'uploaded', 'uploaded')
+        self.assertEqual(d.result(), QDialog.Accepted)
+
     def test_existing_source_has_no_explanation_and_can_return_to_step_one(self):
         d = self.dialog
         d.existing_radio.setChecked(True)
