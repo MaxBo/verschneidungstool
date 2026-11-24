@@ -22,7 +22,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.setupUi(self)
 
-        header = QtWidgets.QTreeWidgetItem(["Kategorie","Beschreibung"])
+        header = QtWidgets.QTreeWidgetItem(["Kategorie", "Beschreibung"])
         self.structure_tree.setHeaderItem(header)
         self.structure_tree.itemClicked.connect(check_status)
         self.add_layer_button.clicked.connect(self.upload_area_shape)
@@ -102,6 +102,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     '''
     connect to the database and initiate rendering of it's contents
     '''
+
     def db_reset(self):
         # clear view
         self.structure_tree.clear()
@@ -111,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ## disable while loading (just to show user, that loading is in progress)
         #self.main_frame.setEnabled(False)
 
-        db_config =  config.settings['db_config']
+        db_config = config.settings['db_config']
         self.login = Login(host=db_config['host'], port=db_config['port'],
                            user=db_config['username'],
                            password=db_config['password'],
@@ -174,6 +175,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     'scenarios' or 'schemata')
     @return True, if successful, else False
     '''
+
     def refresh_attr(self, attributes):
         try:
             for attr in attributes:
@@ -197,10 +199,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.dbconnect_button.setText('mit Datenbank verbinden')
             return False
 
-
     '''
     enable/disable delete button depending on whether area can be deleted or not
     '''
+
     def area_changed(self):
         idx = self.layer_combo.currentIndex()
 
@@ -224,6 +226,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     '''
     initiate removal of the selected area (aggregation layer) from the database
     '''
+
     def remove_area(self):
         name = self.layer_combo.currentText()
         selected_data = self.layer_combo.itemData(
@@ -237,7 +240,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         id, c = selected_data[0]
         schema = selected_data[1]
         table_name = selected_data[2]
-        success, msg= self.db_conn.drop_area(id, table_name, schema)
+        success, msg = self.db_conn.drop_area(id, table_name, schema)
         if success:
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Erfolg", msg)
@@ -322,8 +325,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                            table, auto_close=auto_close)
         intersectDiag.exec_()
 
-
-    def upload_area_shape(self, auto_args = None):
+    def upload_area_shape(self, auto_args=None):
         schemata = [r.name for r in self.schemata]
         reserved_names = [self.layer_combo.itemText(i)
                           for i in range(self.layer_combo.count())]
@@ -347,7 +349,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             get_all = False
         selected_columns = [(i.text(0), i.parent().text(0))
-            for i in get_selected(self.structure_tree, get_all)]
+                            for i in get_selected(self.structure_tree, get_all)]
         last_calc = self.db_conn.get_last_calculated()
 
         selected_area = self.layer_combo.currentText()
@@ -400,10 +402,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             msg_box.exec_()
             return
 
-
         if check_last_calculation and (
-            last_calc[0].area_name != selected_area or
-            last_calc[0].schema != schema):
+                last_calc[0].area_name != selected_area or
+                last_calc[0].schema != schema):
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning, "Warnung!",
                 'Es liegen keine verschnittenen Daten für die '
@@ -491,9 +492,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         resulttables_available = {r.schema_table: r
                                   for r in self.db_conn.get_resulttables_available()}
 
-
         column_categories = self.db_conn.get_column_categories()
         categories = set()
+
+        # refresh materialized views before downloading results
+        self.db_conn.refresh_materialized_views()
 
         for i, schema_resulttable in enumerate(schema_resulttables):
             append = i > 0

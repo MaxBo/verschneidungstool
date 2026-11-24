@@ -9,7 +9,10 @@ from verschneidungstool.config import Config
 from verschneidungstool.save2visumtransfer import (save_to_visum_transfer,
                                                    prepend_categories)
 from PyQt5 import QtCore
-import tempfile, os, shutil, re
+import tempfile
+import os
+import shutil
+import re
 import csv
 from openpyxl import load_workbook, Workbook
 import pandas as pd
@@ -97,7 +100,7 @@ class DBConnection(object):
                        bool_and({id}::text ~ '^[+-]?[0-9]+$') AS all_integral
                 FROM {source}
             """).format(id=pg_sql.Identifier(id_column),
-                         source=pg_sql.Identifier(schema, table)))
+                        source=pg_sql.Identifier(schema, table)))
             total, nonnull, distinct, integer_distinct, integral = cursor.fetchone()
             if not total or not integral or total != nonnull or total != distinct or total != integer_distinct:
                 raise ValueError('Die ID-Spalte muss eindeutige, nicht leere Ganzzahlen '
@@ -107,7 +110,7 @@ class DBConnection(object):
             cursor.execute(pg_sql.SQL('LOCK TABLE {} IN SHARE ROW EXCLUSIVE MODE').format(
                 pg_sql.Identifier(self.vt_schema, 'areas_available')))
             cursor.execute(pg_sql.SQL('SELECT 1 FROM {} WHERE '
-                                     'area_name = %s OR (schema = %s AND table_name = %s)').format(
+                                      'area_name = %s OR (schema = %s AND table_name = %s)').format(
                 pg_sql.Identifier(self.vt_schema, 'areas_available')), (name, schema, table))
             if cursor.fetchone():
                 raise ValueError('Der Name oder der Layer ist bereits als Aggregationsstufe registriert.')
@@ -123,7 +126,7 @@ class DBConnection(object):
         with Connection(login=self.login) as conn:
             cursor = conn.cursor()
             cursor.execute(pg_sql.SQL('UPDATE {} SET area_name = %s '
-                                     'WHERE schema = %s AND table_name = %s').format(
+                                      'WHERE schema = %s AND table_name = %s').format(
                 pg_sql.Identifier(self.vt_schema, 'areas_available')), (name, schema, table))
             conn.commit()
 
@@ -361,7 +364,7 @@ class DBConnection(object):
         return True, ''
 
     def upload_shape(self, schema, name, shapefile, process, conversion_process,
-                 on_progress=None, srid=None, on_exit=None, encoding='UTF-8'):
+                     on_progress=None, srid=None, on_exit=None, encoding='UTF-8'):
         '''
         upload a shapefile to the database, monitor the progress
 
@@ -422,8 +425,10 @@ class DBConnection(object):
             if process.state() != QtCore.QProcess.NotRunning:
                 out = bytearray(process.readAllStandardOutput())
                 err = bytearray(process.readAllStandardError())
-                if len(out) > 0: on_progress(out.decode('utf-8'))
-                if len(err) > 0: on_progress(err.decode('utf-8'))
+                if len(out) > 0:
+                    on_progress(out.decode('utf-8'))
+                if len(err) > 0:
+                    on_progress(err.decode('utf-8'))
 
             if conversion_process.state() != QtCore.QProcess.NotRunning:
                 self.on_progress(str(conversion_process.readAllStandardError()))
@@ -435,8 +440,8 @@ class DBConnection(object):
             process.readyReadStandardError.connect(progress)
 
         def upload_to_db(exit_code, exit_status):
-            if(exit_code != 0):
-                if(self.on_progress):
+            if (exit_code != 0):
+                if (self.on_progress):
                     self.on_progress('<b>Konvertierung nicht '
                                      'erfolgreich </b><br>')
                 return
@@ -525,6 +530,7 @@ class DBConnection(object):
         fetch = self.fetch
         execute = self.execute
         vt_schema = self.vt_schema
+
         def identifier(value):
             return '"' + value.replace('"', '""') + '"'
 
@@ -545,6 +551,7 @@ class DBConnection(object):
         class Intersection(QtCore.QThread):
             progress = QtCore.pyqtSignal(str, float)
             error = QtCore.pyqtSignal(str)
+
             def __init__(self):
                 QtCore.QThread.__init__(self)
 
@@ -631,7 +638,6 @@ class DBConnection(object):
                     progress = min(progress, 99.0)
                     self.progress.emit(f'{query.message} abgeschlossen', progress)
 
-
                 self.progress.emit('Nachbereitungen laufen...', progress)
 
                 sql_post = f"""
@@ -694,7 +700,6 @@ class DBConnection(object):
         """
         self.execute(sql)
 
-
     def refresh_materialized_views(self):
         """refresh materialized views before exporting data of a scenario"""
 
@@ -730,14 +735,13 @@ class DBConnection(object):
                              filename,
                              columns=None,
                              order_by=None):
-        self.refresh_materialized_views()
         order = f' ORDER BY "{order_by}"' if order_by in columns or len(columns) == 0 else ''
 
         if columns and len(columns) > 0:
-            columns=['"{}"'.format(c) for c in columns]
-            columns=','.join(columns)
+            columns = ['"{}"'.format(c) for c in columns]
+            columns = ','.join(columns)
         else:
-            columns='*'
+            columns = '*'
 
         sql = f"""
         COPY (SELECT {columns}
@@ -775,7 +779,6 @@ class DBConnection(object):
                                   append: bool = False,
                                   long_format: bool = False,
                                   ) -> set:
-        self.refresh_materialized_views()
         columns = ['vz_id'] + columns
         colstr = ', '.join(f'"{c}"' for c in columns)
         sql = f'SELECT {colstr} FROM "{schema}"."{table}"'
@@ -836,9 +839,8 @@ class DBConnection(object):
             wbk.save(filename)
 
     def db_table_to_shape_file(self, schema, table, process, filename,
-                               columns=None,  on_progress=None,
+                               columns=None, on_progress=None,
                                srid=None, on_finish=None):
-        self.refresh_materialized_views()
         pgsql2shp_path = config.settings['env']['pgsql2shp_path']
         db_config = config.settings['db_config']
 
@@ -873,8 +875,10 @@ class DBConnection(object):
         def progress():
             out = bytearray(process.readAllStandardOutput())
             err = bytearray(process.readAllStandardError())
-            if len(out) > 0: on_progress(out.decode('utf-8'))
-            if len(err) > 0: on_progress(err.decode('utf-8'))
+            if len(out) > 0:
+                on_progress(out.decode('utf-8'))
+            if len(err) > 0:
+                on_progress(err.decode('utf-8'))
 
         if on_progress:
             process.readyReadStandardOutput.connect(progress)
@@ -882,7 +886,6 @@ class DBConnection(object):
 
         on_progress(f'Konvertiere {schema}.{table} in {filename}')
         process.start(pgsql2shp_cmd)
-
 
     def results_to_shape(self, schema, table, columns, process, filename,
                          on_progress=None, srid=None, on_finish=None):
@@ -895,9 +898,9 @@ class DBConnection(object):
             FROM information_schema.columns
             WHERE table_schema = %s
             AND table_name = %s;''',
-                                   conn,
-                                   params=(schema, table),
-                                   index_col='column_name')
+                                     conn,
+                                     params=(schema, table),
+                                     index_col='column_name')
         try:
             df_columns.loc['geom']
         except KeyError:
@@ -912,8 +915,8 @@ class DBConnection(object):
         id_cols.append('geom')
         columns = id_cols + columns
         self.db_table_to_shape_file(schema, table, process, filename,
-                                   columns=columns, on_progress=on_progress,
-                                   srid=srid, on_finish=on_finish)
+                                    columns=columns, on_progress=on_progress,
+                                    srid=srid, on_finish=on_finish)
 
 
 def parse_projection_file(filename):
@@ -926,6 +929,7 @@ def parse_projection_file(filename):
         projcs, geogcs = parse_projection_data(data)
 
     return data, projcs, geogcs
+
 
 def parse_projection_data(data):
     '''
